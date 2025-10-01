@@ -2,14 +2,19 @@
   "name": "my-v0-project",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
     "start": "next start",
-    "migrate:security": "node scripts/run-migration.ts scripts/002_add_admin_security.sql --env .env",
-    "setup-admin": "node scripts/setup-admin.ts --env .env",
-    "check-setup": "node scripts/check-setup.ts --env .env"
+    "migration": "npx supabase link --project-ref rftpwqpxcanosgnqxqyv && npx supabase db push",
+    "check-setup": "node scripts/check-setup.ts",
+    "add-admin": "node --experimental-strip-types scripts/add-admin.ts",
+    "check-admin": "node --experimental-strip-types scripts/check-admin.ts",
+    "clear-sessions": "node --experimental-strip-types scripts/clear-sessions.ts",
+    "fix-admin": "node --experimental-strip-types scripts/fix-admin-access.ts",
+    "test-login": "node --experimental-strip-types scripts/test-login.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -73,6 +78,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "postcss": "^8.5",
+    "supabase": "^2.47.2",
     "tailwindcss": "^4.1.9",
     "tw-animate-css": "1.3.3",
     "typescript": "^5"

@@ -29,7 +29,7 @@ async function checkSetup() {
 
   if (profilesError) {
     console.error("❌ Profiles table not found or not accessible");
-    console.error("   Please run the migration: npm run migrate:security");
+    console.error("   Please run the migration: npm run migration");
     console.error("   Error:", profilesError.message);
   } else {
     console.log("✅ Profiles table exists and is accessible");
@@ -80,7 +80,7 @@ async function checkSetup() {
   } else {
     console.log("⚠️  Setup is incomplete. Please:");
     if (profilesError) {
-      console.log("   1. Run the migration: npm run migrate:security");
+      console.log("   1. Run the migration: npm run migration");
     }
     if (!admins || admins.length === 0) {
       console.log("   2. Create an admin user (see QUICK_START.md)");

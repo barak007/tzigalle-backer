@@ -4,6 +4,11 @@ import { createServerClient } from "@supabase/ssr";
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Allow access to login page without authentication
+  if (pathname === "/admin/login") {
+    return NextResponse.next();
+  }
+
   // Protect admin routes
   if (pathname.startsWith("/admin")) {
     let response = NextResponse.next({
