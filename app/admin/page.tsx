@@ -30,6 +30,7 @@ import {
   LogOut,
   TruckIcon,
   Clock,
+  Archive,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -52,6 +53,7 @@ type Order = {
   status: string;
   notes: string | null;
   created_at: string;
+  archived: boolean;
 };
 
 const statusLabels: Record<string, string> = {
@@ -77,6 +79,7 @@ export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterDelivery, setFilterDelivery] = useState<string>("all");
+  const [showArchived, setShowArchived] = useState(false);
   const router = useRouter();
 
   // Calculate next delivery dates
@@ -94,7 +97,7 @@ export default function AdminPage() {
 
   const nextTuesday = getNextDeliveryDate(2); // 2 = Tuesday
   const nextFriday = getNextDeliveryDate(5); // 5 = Friday
-  
+
   // Determine the next delivery day
   const nextDeliveryDay = nextTuesday < nextFriday ? "tuesday" : "friday";
   const nextDeliveryDate = nextTuesday < nextFriday ? nextTuesday : nextFriday;
@@ -158,52 +161,88 @@ export default function AdminPage() {
     }
   };
 
+  const toggleArchiveOrder = async (
+    orderId: string,
+    currentArchived: boolean
+  ) => {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("orders")
+      .update({
+        archived: !currentArchived,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", orderId);
+
+    if (error) {
+      console.error("Error archiving order:", error);
+      alert("שגיאה בעדכון ההזמנה");
+    } else {
+      fetchOrders();
+    }
+  };
+
   const filteredOrders = useMemo(() => {
     let filtered = orders;
-    
+
+    // Filter archived/non-archived
+    if (showArchived) {
+      filtered = filtered.filter((order) => order.archived === true);
+    } else {
+      filtered = filtered.filter((order) => order.archived !== true);
+    }
+
     // Filter by status
     if (filterStatus !== "all") {
       filtered = filtered.filter((order) => order.status === filterStatus);
     }
-    
+
     // Filter by delivery date
     if (filterDelivery !== "all") {
-      filtered = filtered.filter((order) => order.delivery_date === filterDelivery);
+      filtered = filtered.filter(
+        (order) => order.delivery_date === filterDelivery
+      );
     }
-    
+
     return filtered;
-  }, [orders, filterStatus, filterDelivery]);
+  }, [orders, filterStatus, filterDelivery, showArchived]);
 
   // Calculate statistics
   const orderStats = useMemo(() => {
-    const nextDeliveryOrders = orders.filter(
+    const activeOrders = orders.filter((o) => !o.archived);
+    const nextDeliveryOrders = activeOrders.filter(
       (o) => o.delivery_date === nextDeliveryDay
     );
-    
-    // Calculate total income (excluding cancelled orders)
-    const totalIncome = orders
+
+    // Calculate total income (excluding cancelled and archived orders)
+    const totalIncome = activeOrders
       .filter((o) => o.status !== "cancelled")
       .reduce((sum, order) => sum + order.total_price, 0);
-    
+
     // Calculate next delivery income (excluding cancelled orders)
     const nextDeliveryIncome = nextDeliveryOrders
       .filter((o) => o.status !== "cancelled")
       .reduce((sum, order) => sum + order.total_price, 0);
-    
+
     // Calculate pending income for next delivery
     const nextDeliveryPendingIncome = nextDeliveryOrders
       .filter((o) => o.status === "pending")
       .reduce((sum, order) => sum + order.total_price, 0);
-    
+
     return {
-      total: orders.length,
-      pending: orders.filter((o) => o.status === "pending").length,
-      confirmed: orders.filter((o) => o.status === "confirmed").length,
-      delivered: orders.filter((o) => o.status === "delivered").length,
+      total: activeOrders.length,
+      pending: activeOrders.filter((o) => o.status === "pending").length,
+      confirmed: activeOrders.filter((o) => o.status === "confirmed").length,
+      delivered: activeOrders.filter((o) => o.status === "delivered").length,
+      archived: orders.filter((o) => o.archived).length,
       nextDelivery: nextDeliveryOrders.length,
-      nextDeliveryPending: nextDeliveryOrders.filter((o) => o.status === "pending").length,
-      tuesdayOrders: orders.filter((o) => o.delivery_date === "tuesday").length,
-      fridayOrders: orders.filter((o) => o.delivery_date === "friday").length,
+      nextDeliveryPending: nextDeliveryOrders.filter(
+        (o) => o.status === "pending"
+      ).length,
+      tuesdayOrders: activeOrders.filter((o) => o.delivery_date === "tuesday")
+        .length,
+      fridayOrders: activeOrders.filter((o) => o.delivery_date === "friday")
+        .length,
       totalIncome,
       nextDeliveryIncome,
       nextDeliveryPendingIncome,
@@ -212,17 +251,30 @@ export default function AdminPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-amber-50 flex items-center justify-center">
-        <p className="text-lg text-amber-900">טוען הזמנות...</p>
+      <div
+        className="min-h-screen bg-amber-50 relative bg-cover bg-center bg-fixed flex items-center justify-center"
+        style={{ backgroundImage: "url(/bakery-2.jpg)" }}
+      >
+        <div className="absolute inset-0 bg-amber-50/90"></div>
+        <p className="text-lg text-amber-900 relative z-10">טוען הזמנות...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-amber-50" dir="rtl">
+    <div
+      className="min-h-screen bg-amber-50 relative bg-cover bg-center bg-fixed"
+      style={{ backgroundImage: "url(/bakery-2.jpg)" }}
+      dir="rtl"
+    >
+      <div className="absolute inset-0 bg-amber-50/90"></div>
       {/* Header */}
-      <header className="bg-amber-900 text-amber-50 py-6 px-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <header
+        className="bg-amber-900 text-amber-50 py-6 px-4 relative bg-cover bg-center"
+        style={{ backgroundImage: "url(/bakery-1.jpg)" }}
+      >
+        <div className="absolute inset-0 bg-amber-900/70"></div>
+        <div className="max-w-7xl mx-auto flex items-center justify-between relative z-10">
           <div>
             <h1 className="text-3xl font-bold mb-1">פאנל ניהול - ציגלה</h1>
             <p className="text-amber-100">ניהול הזמנות ומעקב משלוחים</p>
@@ -249,10 +301,10 @@ export default function AdminPage() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto p-4 md:p-8">
+      <div className="max-w-7xl mx-auto p-4 md:p-8 relative z-10">
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-          <Card>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+          <Card className="bg-white/80 backdrop-blur-sm">
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-amber-900">
                 {orderStats.total}
@@ -260,7 +312,7 @@ export default function AdminPage() {
               <p className="text-sm text-muted-foreground">סה"כ הזמנות</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-white/80 backdrop-blur-sm">
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-yellow-700">
                 {orderStats.pending}
@@ -268,7 +320,7 @@ export default function AdminPage() {
               <p className="text-sm text-muted-foreground">ממתינות</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-white/80 backdrop-blur-sm">
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-blue-700">
                 {orderStats.confirmed}
@@ -276,7 +328,7 @@ export default function AdminPage() {
               <p className="text-sm text-muted-foreground">מאושרות</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-white/80 backdrop-blur-sm">
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-green-700">
                 {orderStats.delivered}
@@ -284,22 +336,39 @@ export default function AdminPage() {
               <p className="text-sm text-muted-foreground">נמסרו</p>
             </CardContent>
           </Card>
-          <Card className="bg-gradient-to-br from-emerald-50 to-green-100 border-emerald-300">
+          <Card className="bg-gradient-to-br from-emerald-50/90 to-green-100/90 border-emerald-300 backdrop-blur-sm">
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-emerald-700">
                 ₪{orderStats.totalIncome.toLocaleString()}
               </p>
-              <p className="text-sm text-emerald-800 font-semibold">סה"כ הכנסות</p>
+              <p className="text-sm text-emerald-800 font-semibold">
+                סה"כ הכנסות
+              </p>
+            </CardContent>
+          </Card>
+          <Card
+            className="bg-gradient-to-br from-slate-50/90 to-slate-100/90 border-slate-300 cursor-pointer hover:from-slate-100 hover:to-slate-200 transition-colors backdrop-blur-sm"
+            onClick={() => setShowArchived(!showArchived)}
+          >
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold text-slate-700">
+                {orderStats.archived}
+              </p>
+              <p className="text-sm text-slate-600 font-semibold flex items-center justify-center gap-1">
+                <Archive className="h-3 w-3" />
+                ארכיון
+              </p>
             </CardContent>
           </Card>
         </div>
 
         {/* Next Delivery Highlight */}
-        <Card className="mb-6 bg-gradient-to-r from-amber-100 to-orange-100 border-amber-300">
+        <Card className="mb-6 bg-gradient-to-r from-amber-100/90 to-orange-100/90 border-amber-300 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-amber-900">
               <TruckIcon className="h-5 w-5" />
-              משלוח הבא: {nextDeliveryDay === "tuesday" ? "יום שלישי" : "יום שישי"}
+              משלוח הבא:{" "}
+              {nextDeliveryDay === "tuesday" ? "יום שלישי" : "יום שישי"}
             </CardTitle>
             <CardDescription className="text-amber-800">
               {formatDeliveryDate(nextDeliveryDay)}
@@ -323,7 +392,9 @@ export default function AdminPage() {
                 <p className="text-3xl font-bold text-emerald-700">
                   ₪{orderStats.nextDeliveryIncome.toLocaleString()}
                 </p>
-                <p className="text-sm text-emerald-800 font-semibold">צפי הכנסות</p>
+                <p className="text-sm text-emerald-800 font-semibold">
+                  צפי הכנסות
+                </p>
               </div>
               <div className="text-center flex items-center justify-center">
                 <Button
@@ -338,7 +409,11 @@ export default function AdminPage() {
             {orderStats.nextDeliveryPendingIncome > 0 && (
               <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <p className="text-sm text-yellow-900">
-                  💰 <span className="font-semibold">₪{orderStats.nextDeliveryPendingIncome.toLocaleString()}</span> בהזמנות ממתינות לאישור
+                  💰{" "}
+                  <span className="font-semibold">
+                    ₪{orderStats.nextDeliveryPendingIncome.toLocaleString()}
+                  </span>{" "}
+                  בהזמנות ממתינות לאישור
                 </p>
               </div>
             )}
@@ -346,42 +421,73 @@ export default function AdminPage() {
         </Card>
 
         {/* Filters */}
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label className="text-sm font-semibold mb-2 block">סינון לפי סטטוס:</Label>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-full bg-white">
-                <SelectValue placeholder="סנן לפי סטטוס" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">כל הסטטוסים</SelectItem>
-                <SelectItem value="pending">ממתינות</SelectItem>
-                <SelectItem value="confirmed">מאושרות</SelectItem>
-                <SelectItem value="preparing">בהכנה</SelectItem>
-                <SelectItem value="ready">מוכנות למשלוח</SelectItem>
-                <SelectItem value="delivered">נמסרו</SelectItem>
-                <SelectItem value="cancelled">בוטלו</SelectItem>
-              </SelectContent>
-            </Select>
+        {!showArchived && (
+          <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-sm font-semibold mb-2 block">
+                סינון לפי סטטוס:
+              </Label>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-full bg-white">
+                  <SelectValue placeholder="סנן לפי סטטוס" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">כל הסטטוסים</SelectItem>
+                  <SelectItem value="pending">ממתינות</SelectItem>
+                  <SelectItem value="confirmed">מאושרות</SelectItem>
+                  <SelectItem value="preparing">בהכנה</SelectItem>
+                  <SelectItem value="ready">מוכנות למשלוח</SelectItem>
+                  <SelectItem value="delivered">נמסרו</SelectItem>
+                  <SelectItem value="cancelled">בוטלו</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-sm font-semibold mb-2 block">
+                סינון לפי יום משלוח:
+              </Label>
+              <Select value={filterDelivery} onValueChange={setFilterDelivery}>
+                <SelectTrigger className="w-full bg-white">
+                  <SelectValue placeholder="סנן לפי יום משלוח" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">כל ימי המשלוח</SelectItem>
+                  <SelectItem value="tuesday">
+                    יום שלישי ({orderStats.tuesdayOrders} הזמנות)
+                  </SelectItem>
+                  <SelectItem value="friday">
+                    יום שישי ({orderStats.fridayOrders} הזמנות)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div>
-            <Label className="text-sm font-semibold mb-2 block">סינון לפי יום משלוח:</Label>
-            <Select value={filterDelivery} onValueChange={setFilterDelivery}>
-              <SelectTrigger className="w-full bg-white">
-                <SelectValue placeholder="סנן לפי יום משלוח" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">כל ימי המשלוח</SelectItem>
-                <SelectItem value="tuesday">
-                  יום שלישי ({orderStats.tuesdayOrders} הזמנות)
-                </SelectItem>
-                <SelectItem value="friday">
-                  יום שישי ({orderStats.fridayOrders} הזמנות)
-                </SelectItem>
-              </SelectContent>
-            </Select>
+        )}
+
+        {/* Archive Header */}
+        {showArchived && (
+          <div className="mb-6">
+            <Card className="bg-gradient-to-r from-slate-100/90 to-slate-200/90 border-slate-300 backdrop-blur-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Archive className="h-5 w-5 text-slate-700" />
+                    <h2 className="text-xl font-bold text-slate-900">
+                      הזמנות בארכיון
+                    </h2>
+                  </div>
+                  <Button
+                    onClick={() => setShowArchived(false)}
+                    variant="outline"
+                    className="bg-white"
+                  >
+                    חזרה להזמנות פעילות
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </div>
+        )}
 
         {/* Active Filters Display */}
         {(filterStatus !== "all" || filterDelivery !== "all") && (
@@ -425,7 +531,7 @@ export default function AdminPage() {
         {/* Orders List */}
         <div className="space-y-4">
           {filteredOrders.length === 0 ? (
-            <Card>
+            <Card className="bg-white/80 backdrop-blur-sm">
               <CardContent className="p-8 text-center text-muted-foreground">
                 אין הזמנות להצגה
               </CardContent>
@@ -436,7 +542,7 @@ export default function AdminPage() {
                 מציג {filteredOrders.length} מתוך {orders.length} הזמנות
               </div>
               {filteredOrders.map((order) => (
-                <Card key={order.id} className="bg-white">
+                <Card key={order.id} className="bg-white/80 backdrop-blur-sm">
                   <CardHeader>
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
@@ -445,7 +551,9 @@ export default function AdminPage() {
                         </CardTitle>
                         <CardDescription className="text-sm text-muted-foreground">
                           הזמנה מתאריך:{" "}
-                          {new Date(order.created_at).toLocaleDateString("he-IL")}{" "}
+                          {new Date(order.created_at).toLocaleDateString(
+                            "he-IL"
+                          )}{" "}
                           בשעה{" "}
                           {new Date(order.created_at).toLocaleTimeString(
                             "he-IL",
@@ -457,14 +565,22 @@ export default function AdminPage() {
                         </CardDescription>
                       </div>
                       <div className="flex flex-col gap-2 items-end">
-                        <Badge className={`${statusColors[order.status]} border`}>
+                        <Badge
+                          className={`${statusColors[order.status]} border`}
+                        >
                           {statusLabels[order.status]}
                         </Badge>
-                        {order.delivery_date === nextDeliveryDay && (
-                          <Badge className="bg-orange-100 text-orange-800 border-orange-300">
-                            משלוח הבא
+                        {order.archived && (
+                          <Badge className="bg-slate-100 text-slate-600 border-slate-300">
+                            בארכיון
                           </Badge>
                         )}
+                        {order.delivery_date === nextDeliveryDay &&
+                          !order.archived && (
+                            <Badge className="bg-orange-100 text-orange-800 border-orange-300">
+                              משלוח הבא
+                            </Badge>
+                          )}
                       </div>
                     </div>
                   </CardHeader>
@@ -500,66 +616,177 @@ export default function AdminPage() {
                       </div>
                     </div>
 
-                  {/* Order Items */}
-                  <div>
-                    <h4 className="font-semibold text-amber-900 mb-2 flex items-center gap-2">
-                      <Package className="h-4 w-4" />
-                      פריטים בהזמנה:
-                    </h4>
-                    <ul className="space-y-1">
-                      {order.items.map((item, idx) => (
-                        <li key={idx} className="text-sm flex justify-between">
-                          <span>
-                            {item.name} x{item.quantity}
-                          </span>
-                          <span className="font-semibold">
-                            {item.price * item.quantity} ₪
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Notes */}
-                  {order.notes && (
-                    <div className="p-3 bg-blue-50 rounded-lg">
-                      <h4 className="font-semibold text-sm text-blue-900 mb-1 flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        הערות:
+                    {/* Order Items */}
+                    <div>
+                      <h4 className="font-semibold text-amber-900 mb-2 flex items-center gap-2">
+                        <Package className="h-4 w-4" />
+                        פריטים בהזמנה:
                       </h4>
-                      <p className="text-sm text-blue-800">{order.notes}</p>
+                      <ul className="space-y-1">
+                        {order.items.map((item, idx) => (
+                          <li
+                            key={idx}
+                            className="text-sm flex justify-between"
+                          >
+                            <span>
+                              {item.name} x{item.quantity}
+                            </span>
+                            <span className="font-semibold">
+                              {item.price * item.quantity} ₪
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                  )}
 
-                  {/* Status Update */}
-                  <div className="pt-4 border-t">
-                    <Label className="text-sm font-semibold mb-2 block">
-                      עדכן סטטוס:
-                    </Label>
-                    <Select
-                      value={order.status}
-                      onValueChange={(value) =>
-                        updateOrderStatus(order.id, value)
-                      }
-                    >
-                      <SelectTrigger className="w-full md:w-64">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">ממתין</SelectItem>
-                        <SelectItem value="confirmed">אושר</SelectItem>
-                        <SelectItem value="preparing">בהכנה</SelectItem>
-                        <SelectItem value="ready">מוכן למשלוח</SelectItem>
-                        <SelectItem value="delivered">נמסר</SelectItem>
-                        <SelectItem value="cancelled">בוטל</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </>
-        )}
+                    {/* Notes */}
+                    {order.notes && (
+                      <div className="p-3 bg-blue-50 rounded-lg">
+                        <h4 className="font-semibold text-sm text-blue-900 mb-1 flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          הערות:
+                        </h4>
+                        <p className="text-sm text-blue-800">{order.notes}</p>
+                      </div>
+                    )}
+
+                    {/* Status Update */}
+                    <div className="pt-4 border-t">
+                      <Label className="text-sm font-semibold mb-3 block">
+                        עדכן סטטוס:
+                      </Label>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          onClick={() => updateOrderStatus(order.id, "pending")}
+                          variant={
+                            order.status === "pending" ? "default" : "outline"
+                          }
+                          size={order.status === "pending" ? "default" : "sm"}
+                          className={
+                            order.status === "pending"
+                              ? "bg-yellow-600 hover:bg-yellow-700 text-white font-bold shadow-lg ring-2 ring-yellow-400 ring-offset-2 scale-105"
+                              : "bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border-yellow-300"
+                          }
+                        >
+                          ממתין
+                        </Button>
+
+                        <Button
+                          onClick={() =>
+                            updateOrderStatus(order.id, "confirmed")
+                          }
+                          variant={
+                            order.status === "confirmed" ? "default" : "outline"
+                          }
+                          size={order.status === "confirmed" ? "default" : "sm"}
+                          className={
+                            order.status === "confirmed"
+                              ? "bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg ring-2 ring-blue-400 ring-offset-2 scale-105"
+                              : "bg-blue-50 hover:bg-blue-100 text-blue-800 border-blue-300"
+                          }
+                        >
+                          אושר
+                        </Button>
+
+                        <Button
+                          onClick={() =>
+                            updateOrderStatus(order.id, "preparing")
+                          }
+                          variant={
+                            order.status === "preparing" ? "default" : "outline"
+                          }
+                          size={order.status === "preparing" ? "default" : "sm"}
+                          className={
+                            order.status === "preparing"
+                              ? "bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-lg ring-2 ring-purple-400 ring-offset-2 scale-105"
+                              : "bg-purple-50 hover:bg-purple-100 text-purple-800 border-purple-300"
+                          }
+                        >
+                          בהכנה
+                        </Button>
+
+                        <Button
+                          onClick={() => updateOrderStatus(order.id, "ready")}
+                          variant={
+                            order.status === "ready" ? "default" : "outline"
+                          }
+                          size={order.status === "ready" ? "default" : "sm"}
+                          className={
+                            order.status === "ready"
+                              ? "bg-green-600 hover:bg-green-700 text-white font-bold shadow-lg ring-2 ring-green-400 ring-offset-2 scale-105"
+                              : "bg-green-50 hover:bg-green-100 text-green-800 border-green-300"
+                          }
+                        >
+                          מוכן למשלוח
+                        </Button>
+
+                        <Button
+                          onClick={() =>
+                            updateOrderStatus(order.id, "delivered")
+                          }
+                          variant={
+                            order.status === "delivered" ? "default" : "outline"
+                          }
+                          size={order.status === "delivered" ? "default" : "sm"}
+                          className={
+                            order.status === "delivered"
+                              ? "bg-gray-600 hover:bg-gray-700 text-white font-bold shadow-lg ring-2 ring-gray-400 ring-offset-2 scale-105"
+                              : "bg-gray-50 hover:bg-gray-100 text-gray-800 border-gray-300"
+                          }
+                        >
+                          נמסר
+                        </Button>
+
+                        <Button
+                          onClick={() =>
+                            updateOrderStatus(order.id, "cancelled")
+                          }
+                          variant={
+                            order.status === "cancelled" ? "default" : "outline"
+                          }
+                          size={order.status === "cancelled" ? "default" : "sm"}
+                          className={
+                            order.status === "cancelled"
+                              ? "bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg ring-2 ring-red-400 ring-offset-2 scale-105"
+                              : "bg-red-50 hover:bg-red-100 text-red-800 border-red-300"
+                          }
+                        >
+                          בוטל
+                        </Button>
+
+                        <div className="w-full md:w-auto md:mr-auto">
+                          {!order.archived ? (
+                            <Button
+                              onClick={() =>
+                                toggleArchiveOrder(order.id, order.archived)
+                              }
+                              variant="outline"
+                              size="sm"
+                              className="bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-300"
+                            >
+                              <Archive className="ml-2 h-4 w-4" />
+                              העבר לארכיון
+                            </Button>
+                          ) : (
+                            <Button
+                              onClick={() =>
+                                toggleArchiveOrder(order.id, order.archived)
+                              }
+                              variant="outline"
+                              size="sm"
+                              className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+                            >
+                              שחזר מהארכיון
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </>
+          )}
         </div>
       </div>
     </div>
