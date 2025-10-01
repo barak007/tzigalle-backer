@@ -5,10 +5,8 @@ import { GeistMono } from "geist/font/mono";
 import { Analytics } from "@vercel/analytics/next";
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { UserProfile } from "@/components/user-profile";
-import { Button } from "@/components/ui/button";
+import { Header } from "@/components/header";
 import { Toaster } from "@/components/ui/toaster";
-import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -34,36 +32,7 @@ export default async function RootLayout({
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <Suspense fallback={null}>
           {/* Navigation Header */}
-          <nav
-            className="bg-white border-b border-amber-200 sticky top-0 z-50"
-            dir="rtl"
-          >
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex justify-between items-center h-16">
-                <Link
-                  href="/"
-                  className="text-2xl font-bold text-amber-900 hover:text-amber-700 transition"
-                >
-                  🥖 ציגלה
-                </Link>
-
-                <div className="flex items-center gap-4">
-                  {user ? (
-                    <UserProfile user={user} />
-                  ) : (
-                    <>
-                      <Link href="/login">
-                        <Button variant="ghost">התחבר</Button>
-                      </Link>
-                      <Link href="/signup">
-                        <Button>הירשם</Button>
-                      </Link>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          </nav>
+          <Header user={user} />
 
           {children}
           <Analytics />
