@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import * as dotenv from "dotenv";
+import { ALL_ENV } from "../lib/env";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -7,16 +8,11 @@ dotenv.config();
 async function checkSetup() {
   console.log("🔍 Checking Admin Security Setup...\n");
 
-  // Check environment variables
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  // Check environment variables (validation happens in lib/env.ts)
+  const supabaseUrl = ALL_ENV.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = ALL_ENV.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!supabaseUrl || !supabaseKey) {
-    console.error("❌ Missing Supabase environment variables");
-    process.exit(1);
-  }
-
-  console.log("✅ Environment variables found");
+  console.log("✅ Environment variables validated");
 
   const supabase = createClient(supabaseUrl, supabaseKey);
 

@@ -7,11 +7,12 @@ import * as readline from "readline";
 import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 
+// Validate environment variables
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("❌ Error: Missing environment variables");
+  console.error("❌ Error: Missing required environment variables");
   console.error("Please make sure you have:");
   console.error("  - NEXT_PUBLIC_SUPABASE_URL");
   console.error("  - SUPABASE_SERVICE_ROLE_KEY");

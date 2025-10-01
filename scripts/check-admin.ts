@@ -2,18 +2,14 @@
 
 import { createClient } from "@supabase/supabase-js";
 import * as readline from "readline";
+import { ALL_ENV } from "../lib/env";
 
 // Load environment variables
 import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("❌ Error: Missing environment variables");
-  process.exit(1);
-}
+const SUPABASE_URL = ALL_ENV.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = ALL_ENV.SUPABASE_SERVICE_ROLE_KEY;
 
 // Create Supabase admin client
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
