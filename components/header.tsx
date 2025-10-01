@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { UserProfile } from "@/components/user-profile";
 import { Button } from "@/components/ui/button";
 import { User } from "@supabase/supabase-js";
@@ -35,9 +36,16 @@ export function Header({ user }: HeaderProps) {
         <div className="flex justify-between items-center h-16">
           <Link
             href="/"
-            className="text-2xl font-serif font-bold text-amber-900 hover:text-amber-700 transition"
+            className="text-2xl font-serif font-bold text-amber-900 hover:text-amber-700 transition flex items-center gap-2"
           >
-            🥖 ציגלה
+            <Image
+              src="/apple-touch-icon.png"
+              alt="ציגלה"
+              width={32}
+              height={32}
+              className="inline-block"
+            />
+            ציגלה
           </Link>
 
           <div className="flex items-center gap-4">

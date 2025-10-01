@@ -256,31 +256,50 @@ export default function HomePage() {
     });
   }, []);
 
-  // Calculate next Tuesday and Friday dates
-  const getNextDeliveryDate = (targetDay: number) => {
+  // Calculate next delivery dates based on deadlines
+  const getNextDeliveryDate = (deliveryDay: number, deadlineDay: number) => {
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const currentDay = today.getDay();
-    let daysUntilTarget = targetDay - currentDay;
 
-    if (daysUntilTarget <= 0) {
-      daysUntilTarget += 7;
+    // Find the next deadline date (or today if it's the deadline day and we haven't passed it yet)
+    let daysUntilDeadline = deadlineDay - currentDay;
+    if (daysUntilDeadline < 0) {
+      daysUntilDeadline += 7; // Next week's deadline
     }
 
-    const targetDate = new Date(today);
-    targetDate.setDate(today.getDate() + daysUntilTarget);
+    const deadlineDate = new Date(today);
+    deadlineDate.setDate(today.getDate() + daysUntilDeadline);
+
+    // Calculate delivery date (2 days after the deadline)
+    const deliveryDate = new Date(deadlineDate);
+    deliveryDate.setDate(deadlineDate.getDate() + 2);
+
+    // Calculate days left until deadline
+    const daysLeft = Math.ceil(
+      (deadlineDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+    );
 
     return {
-      dateString: targetDate.toLocaleDateString("he-IL", {
+      dateString: deliveryDate.toLocaleDateString("he-IL", {
         day: "numeric",
         month: "numeric",
         year: "numeric",
       }),
-      date: targetDate,
+      date: deliveryDate,
+      deadlineDate: deadlineDate,
+      deadlineString: deadlineDate.toLocaleDateString("he-IL", {
+        day: "numeric",
+        month: "numeric",
+      }),
+      daysLeft: daysLeft,
     };
   };
 
-  const tuesdayData = getNextDeliveryDate(2); // 2 = Tuesday
-  const fridayData = getNextDeliveryDate(5); // 5 = Friday
+  // Tuesday delivery - order deadline is Sunday (day 0)
+  // Friday delivery - order deadline is Wednesday (day 3)
+  const tuesdayData = getNextDeliveryDate(2, 0); // Tuesday delivery, Sunday deadline
+  const fridayData = getNextDeliveryDate(5, 3); // Friday delivery, Wednesday deadline
 
   // Order delivery options by date
   const deliveryOptions = [
@@ -289,12 +308,16 @@ export default function HomePage() {
       label: "יום שלישי",
       date: tuesdayData.date,
       dateString: tuesdayData.dateString,
+      deadline: `הזמנה עד יום ראשון (${tuesdayData.deadlineString})`,
+      daysLeft: tuesdayData.daysLeft,
     },
     {
       value: "friday",
       label: "יום שישי",
       date: fridayData.date,
       dateString: fridayData.dateString,
+      deadline: `הזמנה עד יום רביעי (${fridayData.deadlineString})`,
+      daysLeft: fridayData.daysLeft,
     },
   ].sort((a, b) => a.date.getTime() - b.date.getTime());
 
@@ -790,9 +813,30 @@ export default function HomePage() {
                           />
                           <Label
                             htmlFor={option.value}
-                            className="cursor-pointer"
+                            className="cursor-pointer flex flex-col items-start"
                           >
-                            {option.label} ({option.dateString})
+                            <span className="font-semibold">
+                              {option.label} ({option.dateString})
+                            </span>
+                            <span className="text-xs text-amber-600">
+                              {option.deadline}
+                              {option.daysLeft >= 0 && (
+                                <span
+                                  className={`mr-1 font-semibold ${
+                                    option.daysLeft === 0
+                                      ? "text-red-600"
+                                      : option.daysLeft === 1
+                                      ? "text-orange-600"
+                                      : "text-green-600"
+                                  }`}
+                                >
+                                  •{" "}
+                                  {option.daysLeft === 0
+                                    ? "יום אחרון!"
+                                    : `נשארו ${option.daysLeft} ימים`}
+                                </span>
+                              )}
+                            </span>
                           </Label>
                         </div>
                       ))}
@@ -836,7 +880,7 @@ export default function HomePage() {
                   🍞 איכות מובטחת
                 </h3>
                 <p className="text-amber-800 leading-relaxed">
-                  כל הלחמים מגיעים פרוסים, ארוזים וטריים – ישר עד דלת הבית
+                  כל הלחמים מגיעים פרוסים, ארוזים וטריים <br /> ישר עד דלת הבית
                 </p>
               </div>
 
