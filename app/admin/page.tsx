@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
 
 type Order = {
   id: string;
@@ -43,12 +43,14 @@ type Order = {
   customer_address: string;
   customer_city: string;
   delivery_date: string;
-  items: Array<{
-    breadId: number;
-    name: string;
-    quantity: number;
-    price: number;
-  }>;
+  items:
+    | Record<string, number>
+    | Array<{
+        breadId: number;
+        name: string;
+        quantity: number;
+        price: number;
+      }>;
   total_price: number;
   status: string;
   notes: string | null;
@@ -81,6 +83,7 @@ export default function AdminPage() {
   const [filterDelivery, setFilterDelivery] = useState<string>("all");
   const [showArchived, setShowArchived] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
 
   // Calculate next delivery dates
   const getNextDeliveryDate = (targetDay: number) => {
@@ -129,7 +132,11 @@ export default function AdminPage() {
         error.code === "42501" ||
         error.message.includes("row-level security")
       ) {
-        alert("שגיאת הרשאות. אנא התחבר מחדש.");
+        toast({
+          title: "שגיאת הרשאות",
+          description: "אנא התחבר מחדש",
+          variant: "destructive",
+        });
         await supabase.auth.signOut();
         router.push("/admin/login");
       }
@@ -155,8 +162,16 @@ export default function AdminPage() {
 
     if (error) {
       console.error("Error updating order:", error);
-      alert("שגיאה בעדכון ההזמנה");
+      toast({
+        title: "שגיאה",
+        description: "שגיאה בעדכון ההזמנה",
+        variant: "destructive",
+      });
     } else {
+      toast({
+        title: "עודכן בהצלחה",
+        description: `הסטטוס עודכן ל${statusLabels[newStatus]}`,
+      });
       fetchOrders();
     }
   };
@@ -176,8 +191,16 @@ export default function AdminPage() {
 
     if (error) {
       console.error("Error archiving order:", error);
-      alert("שגיאה בעדכון ההזמנה");
+      toast({
+        title: "שגיאה",
+        description: "שגיאה בעדכון ההזמנה",
+        variant: "destructive",
+      });
     } else {
+      toast({
+        title: !currentArchived ? "הועבר לארכיון" : "שוחזר מהארכיון",
+        description: "ההזמנה עודכנה בהצלחה",
+      });
       fetchOrders();
     }
   };
@@ -623,19 +646,34 @@ export default function AdminPage() {
                         פריטים בהזמנה:
                       </h4>
                       <ul className="space-y-1">
-                        {order.items.map((item, idx) => (
-                          <li
-                            key={idx}
-                            className="text-sm flex justify-between"
-                          >
-                            <span>
-                              {item.name} x{item.quantity}
-                            </span>
-                            <span className="font-semibold">
-                              {item.price * item.quantity} ₪
-                            </span>
-                          </li>
-                        ))}
+                        {Array.isArray(order.items)
+                          ? // Old format: array of objects
+                            order.items.map((item, idx) => (
+                              <li
+                                key={idx}
+                                className="text-sm flex justify-between"
+                              >
+                                <span>
+                                  {item.name} x{item.quantity}
+                                </span>
+                                <span className="font-semibold">
+                                  {item.price * item.quantity} ₪
+                                </span>
+                              </li>
+                            ))
+                          : // New format: object with bread names as keys
+                            Object.entries(order.items).map(
+                              ([name, quantity], idx) => (
+                                <li
+                                  key={idx}
+                                  className="text-sm flex justify-between"
+                                >
+                                  <span>
+                                    {name} x{quantity}
+                                  </span>
+                                </li>
+                              )
+                            )}
                       </ul>
                     </div>
 

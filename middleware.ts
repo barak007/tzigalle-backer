@@ -4,49 +4,63 @@ import { createServerClient } from "@supabase/ssr";
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow access to login page without authentication
-  if (pathname === "/admin/login") {
+  // Allow access to login and signup pages without authentication
+  if (
+    pathname === "/admin/login" ||
+    pathname === "/login" ||
+    pathname === "/signup" ||
+    pathname.startsWith("/auth/")
+  ) {
     return NextResponse.next();
+  }
+
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          });
+        },
+        remove(name: string, options: any) {
+          response.cookies.delete({
+            name,
+            ...options,
+          });
+        },
+      },
+    }
+  );
+
+  // Check if user is authenticated
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Protect /orders routes - require authentication
+  if (pathname.startsWith("/orders")) {
+    if (!user) {
+      const redirectUrl = new URL("/login?returnTo=" + pathname, request.url);
+      return NextResponse.redirect(redirectUrl);
+    }
+    return response;
   }
 
   // Protect admin routes
   if (pathname.startsWith("/admin")) {
-    let response = NextResponse.next({
-      request: {
-        headers: request.headers,
-      },
-    });
-
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return request.cookies.get(name)?.value;
-          },
-          set(name: string, value: string, options: any) {
-            response.cookies.set({
-              name,
-              value,
-              ...options,
-            });
-          },
-          remove(name: string, options: any) {
-            response.cookies.delete({
-              name,
-              ...options,
-            });
-          },
-        },
-      }
-    );
-
-    // Check if user is authenticated
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
     if (!user) {
       // Redirect to login if not authenticated
       const redirectUrl = new URL("/admin/login", request.url);
@@ -69,7 +83,7 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {

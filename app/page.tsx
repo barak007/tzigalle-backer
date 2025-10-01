@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,7 +17,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { createClient } from "@/lib/supabase/client";
 import { Minus, Plus, ShoppingCart } from "lucide-react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { createOrder } from "@/app/actions/orders";
+import { useToast } from "@/hooks/use-toast";
 
 const breads = [
   { id: 1, name: "לחם חיטה מלאה בציפוי שומשום/צ'יה", price: 24 },
@@ -33,6 +36,8 @@ const breads = [
 ];
 
 export default function HomePage() {
+  const router = useRouter();
+  const { toast } = useToast();
   const [cart, setCart] = useState<Record<number, number>>({});
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -42,6 +47,41 @@ export default function HomePage() {
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Check authentication and load pending order
+  useEffect(() => {
+    const supabase = createClient();
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+      setLoading(false);
+
+      // Pre-fill user data if logged in
+      if (user) {
+        setCustomerName(user.user_metadata?.full_name || user.email || "");
+      }
+
+      // Load pending order from localStorage
+      const pendingOrder = localStorage.getItem("pendingOrder");
+      if (pendingOrder) {
+        try {
+          const orderData = JSON.parse(pendingOrder);
+          setCart(orderData.cart || {});
+          setCustomerName(orderData.customerName || "");
+          setCustomerPhone(orderData.customerPhone || "");
+          setCustomerAddress(orderData.customerAddress || "");
+          setCustomerCity(orderData.customerCity || "כפר יהושוע");
+          setDeliveryDate(orderData.deliveryDate || "");
+          setNotes(orderData.notes || "");
+          localStorage.removeItem("pendingOrder");
+        } catch (e) {
+          console.error("Error loading pending order:", e);
+        }
+      }
+    });
+  }, []);
 
   // Calculate next Tuesday and Friday dates
   const getNextDeliveryDate = (targetDay: number) => {
@@ -107,37 +147,91 @@ export default function HomePage() {
     e.preventDefault();
     if (totalItems === 0) return;
 
-    setIsSubmitting(true);
-    const supabase = createClient();
-
-    const orderItems = Object.entries(cart).map(([id, quantity]) => {
-      const bread = breads.find((b) => b.id === Number(id));
-      return {
-        breadId: Number(id),
-        name: bread?.name,
-        quantity,
-        price: bread?.price,
+    // Check if user is logged in
+    if (!user) {
+      // Save form data to localStorage
+      const orderData = {
+        cart,
+        customerName,
+        customerPhone,
+        customerAddress,
+        customerCity,
+        deliveryDate,
+        notes,
       };
-    });
+      localStorage.setItem("pendingOrder", JSON.stringify(orderData));
 
-    try {
-      const { error } = await supabase.from("orders").insert({
-        customer_name: customerName,
-        customer_phone: customerPhone,
-        customer_address: customerAddress,
-        customer_city: customerCity,
-        delivery_date: deliveryDate,
-        items: orderItems,
-        total_price: totalPrice,
-        status: "pending",
-        notes: notes || null,
+      toast({
+        title: "נדרשת התחברות",
+        description: "יש להתחבר כדי להשלים את ההזמנה",
+        variant: "default",
       });
 
-      if (error) throw error;
+      // Redirect to signup/login
+      router.push("/signup?returnTo=/");
+      return;
+    }
+
+    // Validation
+    if (!deliveryDate) {
+      toast({
+        title: "שגיאה",
+        description: "יש לבחור תאריך משלוח",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (customerPhone.length < 10) {
+      toast({
+        title: "שגיאה",
+        description: "מספר טלפון לא תקין",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    // Convert cart to items format
+    const orderItems = Object.entries(cart).reduce((acc, [id, quantity]) => {
+      const bread = breads.find((b) => b.id === Number(id));
+      if (bread) {
+        acc[bread.name] = quantity;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
+    try {
+      const result = await createOrder({
+        customerName,
+        customerPhone,
+        customerAddress,
+        customerCity,
+        deliveryDate,
+        items: orderItems,
+        totalPrice,
+        notes,
+      });
+
+      if (!result.success) {
+        toast({
+          title: "שגיאה",
+          description: result.error || "שגיאה בשליחת ההזמנה",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Success!
+      toast({
+        title: "ההזמנה התקבלה בהצלחה! 🎉",
+        description: "נחזור אליך בהקדם לאישור ההזמנה",
+      });
 
       setOrderSuccess(true);
       setCart({});
-      setCustomerName("");
+      setCustomerName(user.user_metadata?.full_name || user.email || "");
       setCustomerPhone("");
       setCustomerAddress("");
       setCustomerCity("כפר יהושוע");
@@ -145,12 +239,15 @@ export default function HomePage() {
       setNotes("");
     } catch (error) {
       console.error("Error submitting order:", error);
-      alert("שגיאה בשליחת ההזמנה. אנא נסה שוב.");
+      toast({
+        title: "שגיאה",
+        description: "שגיאה בלתי צפויה. אנא נסה שוב",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
-
   if (orderSuccess) {
     return (
       <div className="min-h-screen bg-amber-50 flex items-center justify-center p-4">
@@ -167,12 +264,21 @@ export default function HomePage() {
             <p className="text-muted-foreground">
               נחזור אליך בהקדם לאישור ההזמנה
             </p>
-            <Button
-              onClick={() => setOrderSuccess(false)}
-              className="w-full bg-amber-700 hover:bg-amber-800"
-            >
-              חזרה לדף הראשי
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button
+                onClick={() => setOrderSuccess(false)}
+                className="w-full bg-amber-700 hover:bg-amber-800"
+              >
+                חזרה לדף הראשי
+              </Button>
+              <Button
+                onClick={() => router.push("/orders")}
+                variant="outline"
+                className="w-full"
+              >
+                צפה בהזמנות שלי
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -261,6 +367,15 @@ export default function HomePage() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  {/* Auth Notice */}
+                  {!loading && !user && totalItems > 0 && (
+                    <Alert className="bg-amber-50 border-amber-300">
+                      <AlertDescription className="text-amber-900">
+                        💡 תתבקש להתחבר או להירשם לפני השלמת ההזמנה
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
                   {/* Order Summary */}
                   {totalItems > 0 && (
                     <div className="space-y-2 p-3 bg-amber-50/50 rounded-lg border border-amber-200">
@@ -380,10 +495,12 @@ export default function HomePage() {
                   <Button
                     type="submit"
                     className="w-full bg-amber-700 hover:bg-amber-800 text-lg py-6"
-                    disabled={totalItems === 0 || isSubmitting}
+                    disabled={totalItems === 0 || isSubmitting || loading}
                   >
                     {isSubmitting
                       ? "שולח הזמנה..."
+                      : !user
+                      ? `המשך להזמנה (${totalPrice} ₪)`
                       : `שלח הזמנה (${totalPrice} ₪)`}
                   </Button>
                 </form>
