@@ -398,16 +398,19 @@ export default function HomePage() {
 
     setIsSubmitting(true);
 
-    // Convert cart to items format
+    // Convert cart to old items format with fixed prices
     const orderItems = Object.entries(cart).reduce((acc, [id, quantity]) => {
       const bread = findBreadById(Number(id));
       if (bread) {
-        // Format: "Category - Option"
-        const fullName = `${bread.categoryTitle} - ${bread.name}`;
-        acc[fullName] = quantity;
+        acc.push({
+          breadId: Number(id),
+          name: `${bread.categoryTitle} - ${bread.name}`,
+          quantity,
+          price: bread.price,
+        });
       }
       return acc;
-    }, {} as Record<string, number>);
+    }, [] as Array<{ breadId: number; name: string; quantity: number; price: number }>);
 
     try {
       const result = await createOrder({

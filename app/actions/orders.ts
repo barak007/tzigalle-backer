@@ -9,7 +9,12 @@ export interface OrderData {
   customerAddress: string;
   customerCity: string;
   deliveryDate: string;
-  items: Record<string, number>; // { "Bread Name": quantity }
+  items: Array<{
+    breadId: number;
+    name: string;
+    quantity: number;
+    price: number;
+  }>; // Old format with fixed prices
   totalPrice: number;
   notes?: string;
 }
@@ -50,7 +55,7 @@ export async function createOrder(orderData: OrderData): Promise<OrderResult> {
       };
     }
 
-    if (Object.keys(orderData.items).length === 0) {
+    if (orderData.items.length === 0) {
       return {
         success: false,
         error: "העגלה ריקה",
@@ -67,7 +72,7 @@ export async function createOrder(orderData: OrderData): Promise<OrderResult> {
         customer_address: orderData.customerAddress,
         customer_city: orderData.customerCity,
         delivery_date: orderData.deliveryDate,
-        items: orderData.items, // Simple format: { "Bread Name": quantity }
+        items: orderData.items, // Array format: [{breadId, name, quantity, price}]
         total_price: orderData.totalPrice,
         status: "pending",
         notes: orderData.notes || null,

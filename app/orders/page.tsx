@@ -138,44 +138,17 @@ export default async function OrdersPage() {
                       <h4 className="font-semibold mb-2">פריטים בהזמנה:</h4>
                       <div className="space-y-2">
                         {order.items &&
-                          (() => {
-                            // New format: { "Bread Name": quantity }
-                            if (
-                              typeof order.items === "object" &&
-                              !Array.isArray(order.items)
-                            ) {
-                              return Object.entries(
-                                order.items as Record<string, number>
-                              ).map(([name, quantity]) => (
-                                <div
-                                  key={name}
-                                  className="flex justify-between text-sm"
-                                >
-                                  <span>{name}</span>
-                                  <span className="text-muted-foreground">
-                                    x{quantity}
-                                  </span>
-                                </div>
-                              ));
-                            }
-                            // Old format: [{ name, quantity, price, breadId }]
-                            if (Array.isArray(order.items)) {
-                              return (order.items as any[]).map(
-                                (item: any, index: number) => (
-                                  <div
-                                    key={index}
-                                    className="flex justify-between text-sm"
-                                  >
-                                    <span>{item.name}</span>
-                                    <span className="text-muted-foreground">
-                                      x{item.quantity}
-                                    </span>
-                                  </div>
-                                )
-                              );
-                            }
-                            return null;
-                          })()}
+                          order.items.map((item: any, index: number) => (
+                            <div
+                              key={index}
+                              className="flex justify-between text-sm"
+                            >
+                              <span>{item.name}</span>
+                              <span className="text-muted-foreground">
+                                x{item.quantity}
+                              </span>
+                            </div>
+                          ))}
                       </div>
                     </div>
 

@@ -43,14 +43,12 @@ type Order = {
   customer_address: string;
   customer_city: string;
   delivery_date: string;
-  items:
-    | Record<string, number>
-    | Array<{
-        breadId: number;
-        name: string;
-        quantity: number;
-        price: number;
-      }>;
+  items: Array<{
+    breadId: number;
+    name: string;
+    quantity: number;
+    price: number;
+  }>; // Old format with fixed prices
   total_price: number;
   status: string;
   notes: string | null;
@@ -655,34 +653,19 @@ export default function AdminPage() {
                         פריטים בהזמנה:
                       </h4>
                       <ul className="space-y-1">
-                        {Array.isArray(order.items)
-                          ? // Old format: array of objects
-                            order.items.map((item, idx) => (
-                              <li
-                                key={idx}
-                                className="text-sm flex justify-between"
-                              >
-                                <span>
-                                  {item.name} x{item.quantity}
-                                </span>
-                                <span className="font-semibold">
-                                  {item.price * item.quantity} ₪
-                                </span>
-                              </li>
-                            ))
-                          : // New format: object with bread names as keys
-                            Object.entries(order.items).map(
-                              ([name, quantity], idx) => (
-                                <li
-                                  key={idx}
-                                  className="text-sm flex justify-between"
-                                >
-                                  <span>
-                                    {name} x{quantity}
-                                  </span>
-                                </li>
-                              )
-                            )}
+                        {order.items.map((item, idx) => (
+                          <li
+                            key={idx}
+                            className="text-sm flex justify-between"
+                          >
+                            <span>
+                              {item.name} x{item.quantity}
+                            </span>
+                            <span className="font-semibold">
+                              {item.price * item.quantity} ₪
+                            </span>
+                          </li>
+                        ))}
                       </ul>
                     </div>
 
