@@ -4,14 +4,6 @@ import { useRouter } from "next/navigation";
 import { signOut } from "@/lib/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { User } from "@supabase/supabase-js";
 
 interface UserProfileProps {
@@ -37,37 +29,50 @@ export function UserProfile({ user }: UserProfileProps) {
       .slice(0, 2);
   };
 
+  const isHebrew = (text: string) => {
+    // Check if text contains Hebrew characters (Unicode range: \u0590-\u05FF)
+    return /[\u0590-\u05FF]/.test(text);
+  };
+
   const displayName = user.user_metadata?.full_name || user.email;
   const avatarUrl = user.user_metadata?.avatar_url;
+  const nameAlignment = isHebrew(displayName || "")
+    ? "text-center"
+    : "text-left";
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+    <div className="flex items-center gap-4">
+      <Button variant="outline" onClick={() => router.push("/orders")}>
+        ההזמנות שלי
+      </Button>
+      <div className="relative group">
+        <button className="relative h-10 w-10 rounded-full hover:opacity-80 transition">
           <Avatar className="h-10 w-10">
             <AvatarImage src={avatarUrl} alt={displayName || ""} />
             <AvatarFallback>
               {getInitials(user.user_metadata?.full_name)}
             </AvatarFallback>
           </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{displayName}</p>
-            <p className="text-xs leading-none text-muted-foreground">
+        </button>
+        <div className="absolute left-0 mt-2 w-56 bg-white rounded-md shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+          <div className="p-3 border-b border-gray-100">
+            <p className={`text-sm font-medium ${nameAlignment}`}>
+              {displayName}
+            </p>
+            <p className={`text-xs text-gray-500 mt-1 ${nameAlignment}`}>
               {user.email}
             </p>
           </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => router.push("/orders")}>
-          ההזמנות שלי
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleSignOut}>התנתק</DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          <div className="p-2">
+            <button
+              onClick={handleSignOut}
+              className="w-full text-right px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded transition"
+            >
+              התנתק
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

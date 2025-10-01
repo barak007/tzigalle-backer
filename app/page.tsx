@@ -302,9 +302,9 @@ export default function HomePage() {
           <h1 className="text-4xl md:text-5xl font-bold mb-3 font-serif">
             ציגלה
           </h1>
-          <p className="text-lg md:text-xl text-amber-100 leading-relaxed max-w-3xl mx-auto">
-            הלחמים שלנו נאפים באהבה מקמחים איכותיים ומחמצת טבעית – כדי שכל פרוסה
-            תרגיש כמו בבית
+          <p className="text-lg md:text-xl text-amber-100 leading-relaxed max-w-3xl mx-auto text-balance">
+            הלחמים שלנו נאפים באהבה מקמחים איכותיים ומחמצת טבעית <br /> כדי שכל
+            פרוסה תרגיש כמו בבית
           </p>
         </div>
       </header>

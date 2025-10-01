@@ -49,12 +49,7 @@ export default async function RootLayout({
 
                 <div className="flex items-center gap-4">
                   {user ? (
-                    <>
-                      <Link href="/orders">
-                        <Button variant="ghost">ההזמנות שלי</Button>
-                      </Link>
-                      <UserProfile user={user} />
-                    </>
+                    <UserProfile user={user} />
                   ) : (
                     <>
                       <Link href="/login">
