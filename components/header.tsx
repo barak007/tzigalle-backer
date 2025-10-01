@@ -35,7 +35,7 @@ export function Header({ user }: HeaderProps) {
         <div className="flex justify-between items-center h-16">
           <Link
             href="/"
-            className="text-2xl font-bold text-amber-900 hover:text-amber-700 transition"
+            className="text-2xl font-serif font-bold text-amber-900 hover:text-amber-700 transition"
           >
             🥖 ציגלה
           </Link>

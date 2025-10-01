@@ -19,6 +19,16 @@ import { createClient } from "@/lib/supabase/client";
 import { Minus, Plus, ShoppingCart } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { createOrder } from "@/app/actions/orders";
 import { useToast } from "@/hooks/use-toast";
 
@@ -77,10 +87,63 @@ export default function HomePage() {
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [hasSavedOrder, setHasSavedOrder] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [showClearDialog, setShowClearDialog] = useState(false);
 
-  // Check authentication and load pending order
+  // Save current order data to localStorage whenever form changes (after initial load)
+  useEffect(() => {
+    // Skip saving on initial load to allow data to be loaded first
+    if (isInitialLoad) {
+      return;
+    }
+
+    const orderData = {
+      cart,
+      customerName,
+      customerPhone,
+      customerAddress,
+      customerCity,
+      deliveryDate,
+      notes,
+    };
+
+    // Check if there's any meaningful data to save
+    const hasData =
+      Object.keys(cart).length > 0 ||
+      customerName.trim() !== "" ||
+      customerPhone.trim() !== "" ||
+      customerAddress.trim() !== "" ||
+      deliveryDate !== "" ||
+      notes.trim() !== "";
+
+    if (hasData) {
+      localStorage.setItem("currentOrder", JSON.stringify(orderData));
+      setHasSavedOrder(true);
+    } else {
+      localStorage.removeItem("currentOrder");
+      setHasSavedOrder(false);
+    }
+  }, [
+    cart,
+    customerName,
+    customerPhone,
+    customerAddress,
+    customerCity,
+    deliveryDate,
+    notes,
+    isInitialLoad,
+  ]);
+
+  // Check authentication and load saved order
   useEffect(() => {
     const supabase = createClient();
+
+    // Check if there's saved order data immediately
+    const currentOrder = localStorage.getItem("currentOrder");
+    if (currentOrder) {
+      setHasSavedOrder(true);
+    }
 
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
@@ -91,7 +154,7 @@ export default function HomePage() {
         setCustomerName(user.user_metadata?.full_name || user.email || "");
       }
 
-      // Load pending order from localStorage
+      // Load pending order from localStorage (from login redirect)
       const pendingOrder = localStorage.getItem("pendingOrder");
       if (pendingOrder) {
         try {
@@ -104,10 +167,38 @@ export default function HomePage() {
           setDeliveryDate(orderData.deliveryDate || "");
           setNotes(orderData.notes || "");
           localStorage.removeItem("pendingOrder");
+
+          toast({
+            title: "ההזמנה שלך נטענה",
+            description: "המשך להזמין מהמקום שבו עצרת",
+          });
         } catch (e) {
           console.error("Error loading pending order:", e);
         }
+      } else {
+        // Load current order from localStorage
+        const currentOrder = localStorage.getItem("currentOrder");
+        if (currentOrder) {
+          try {
+            const orderData = JSON.parse(currentOrder);
+            setCart(orderData.cart || {});
+            if (!user) {
+              // Only load form data if not logged in (don't override user data)
+              setCustomerName(orderData.customerName || "");
+            }
+            setCustomerPhone(orderData.customerPhone || "");
+            setCustomerAddress(orderData.customerAddress || "");
+            setCustomerCity(orderData.customerCity || "כפר יהושוע");
+            setDeliveryDate(orderData.deliveryDate || "");
+            setNotes(orderData.notes || "");
+          } catch (e) {
+            console.error("Error loading current order:", e);
+          }
+        }
       }
+
+      // Mark initial load as complete
+      setIsInitialLoad(false);
     });
   }, []);
 
@@ -190,7 +281,7 @@ export default function HomePage() {
     e.preventDefault();
     if (totalItems === 0) return;
 
-    // Check if user is logged in
+    // Check if user is logged in - redirect immediately
     if (!user) {
       // Save form data to localStorage
       const orderData = {
@@ -204,14 +295,8 @@ export default function HomePage() {
       };
       localStorage.setItem("pendingOrder", JSON.stringify(orderData));
 
-      toast({
-        title: "נדרשת התחברות",
-        description: "יש להתחבר כדי להשלים את ההזמנה",
-        variant: "default",
-      });
-
-      // Redirect to signup/login
-      router.push("/signup?returnTo=/");
+      // Redirect to login page
+      router.push("/login?returnTo=/");
       return;
     }
 
@@ -282,6 +367,10 @@ export default function HomePage() {
       setCustomerCity("כפר יהושוע");
       setDeliveryDate("");
       setNotes("");
+
+      // Clear saved order from localStorage
+      localStorage.removeItem("currentOrder");
+      setHasSavedOrder(false);
     } catch (error) {
       console.error("Error submitting order:", error);
       toast({
@@ -293,6 +382,25 @@ export default function HomePage() {
       setIsSubmitting(false);
     }
   };
+
+  const handleClearOrder = () => {
+    setCart({});
+    setCustomerName(user?.user_metadata?.full_name || user?.email || "");
+    setCustomerPhone("");
+    setCustomerAddress("");
+    setCustomerCity("כפר יהושוע");
+    setDeliveryDate("");
+    setNotes("");
+    localStorage.removeItem("currentOrder");
+    setHasSavedOrder(false);
+    setShowClearDialog(false);
+
+    toast({
+      title: "ההזמנה נוקתה",
+      description: "כל פרטי ההזמנה נמחקו",
+    });
+  };
+
   if (orderSuccess) {
     return (
       <div className="min-h-screen bg-amber-50 flex items-center justify-center p-4">
@@ -378,7 +486,7 @@ export default function HomePage() {
                   {category.breads.map((bread) => (
                     <Card
                       key={bread.id}
-                      className="bg-white/80 backdrop-blur-sm"
+                      className="bg-white/80 backdrop-blur-sm p-0"
                     >
                       <CardContent className="p-3">
                         <div className="flex items-center justify-between gap-4">
@@ -567,6 +675,19 @@ export default function HomePage() {
                       ? `המשך להזמנה (${totalPrice} ₪)`
                       : `שלח הזמנה (${totalPrice} ₪)`}
                   </Button>
+
+                  {/* Clear Order Button - show only when there's saved data */}
+                  {hasSavedOrder && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowClearDialog(true)}
+                      className="w-full border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800"
+                      disabled={isSubmitting}
+                    >
+                      נקה הזמנה
+                    </Button>
+                  )}
                 </form>
               </CardContent>
             </Card>
@@ -611,6 +732,28 @@ export default function HomePage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Clear Order Confirmation Dialog */}
+      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>נקה הזמנה?</AlertDialogTitle>
+            <AlertDialogDescription>
+              האם אתה בטוח שברצונך לנקות את כל ההזמנה? פעולה זו תמחק את כל
+              הפריטים והפרטים שהזנת ולא ניתן לבטלה.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel>ביטול</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleClearOrder}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              נקה הזמנה
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

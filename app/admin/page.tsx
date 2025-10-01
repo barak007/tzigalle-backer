@@ -262,6 +262,9 @@ export default function AdminPage() {
       nextDeliveryPending: nextDeliveryOrders.filter(
         (o) => o.status === "pending"
       ).length,
+      nextDeliveryCancelled: nextDeliveryOrders.filter(
+        (o) => o.status === "cancelled"
+      ).length,
       tuesdayOrders: activeOrders.filter((o) => o.delivery_date === "tuesday")
         .length,
       fridayOrders: activeOrders.filter((o) => o.delivery_date === "friday")
@@ -398,7 +401,7 @@ export default function AdminPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="text-center">
                 <p className="text-3xl font-bold text-amber-900">
                   {orderStats.nextDelivery}
@@ -410,6 +413,12 @@ export default function AdminPage() {
                   {orderStats.nextDeliveryPending}
                 </p>
                 <p className="text-sm text-amber-700">ממתינות לאישור</p>
+              </div>
+              <div className="text-center">
+                <p className="text-3xl font-bold text-red-600">
+                  {orderStats.nextDeliveryCancelled}
+                </p>
+                <p className="text-sm text-red-700">בוטלו</p>
               </div>
               <div className="text-center">
                 <p className="text-3xl font-bold text-emerald-700">

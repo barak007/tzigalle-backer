@@ -30,10 +30,11 @@ export async function createOrder(orderData: OrderData): Promise<OrderResult> {
       error: authError,
     } = await supabase.auth.getUser();
 
+    // This should not happen as we redirect on client side, but just in case
     if (authError || !user) {
       return {
         success: false,
-        error: "יש להתחבר כדי להזמין",
+        error: "אירעה שגיאה באימות. אנא התחבר מחדש",
       };
     }
 
