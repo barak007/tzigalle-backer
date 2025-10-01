@@ -22,17 +22,45 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { createOrder } from "@/app/actions/orders";
 import { useToast } from "@/hooks/use-toast";
 
-const breads = [
-  { id: 1, name: "לחם חיטה מלאה בציפוי שומשום/צ'יה", price: 24 },
-  { id: 2, name: "לחם חיטה מלאה עם עגבניות מיובשות/זיתים", price: 28 },
+const breadCategories = [
   {
-    id: 3,
-    name: "לחם זרעים עם שומשום, גרעיני דלעת, צ'יה, פשתן ופרג",
-    price: 28,
+    title: "לחם חיטה מלאה",
+    price: 24,
+    breads: [
+      { id: 1, name: "בציפוי צ'יה" },
+      { id: 2, name: "בציפוי שומשום" },
+      { id: 3, name: "עם עגבניות מיובשות" },
+      { id: 4, name: "עם זיתים" },
+    ],
   },
-  { id: 4, name: "לחם כוסמין בציפוי שומשום/צ'יה", price: 28 },
-  { id: 5, name: "לחם כוסמין עם פרג ואגוזים", price: 28 },
-  { id: 6, name: "לחם ארבעה קמחים בציפוי שומשום/זרעים", price: 28 },
+  {
+    title: "לחם זרעים",
+    price: 28,
+    breads: [
+      { id: 5, name: "עם שומשום" },
+      { id: 6, name: "עם גרעיני דלעת" },
+      { id: 7, name: "עם צ'יה" },
+      { id: 8, name: "עם פשתן" },
+      { id: 9, name: "עם פרג" },
+    ],
+  },
+  {
+    title: "לחם כוסמין",
+    price: 28,
+    breads: [
+      { id: 10, name: "בציפוי שומשום" },
+      { id: 11, name: "בציפוי צ'יה" },
+      { id: 12, name: "עם פרג ואגוזים" },
+    ],
+  },
+  {
+    title: "לחם ארבעה קמחים",
+    price: 28,
+    breads: [
+      { id: 13, name: "בציפוי שומשום" },
+      { id: 14, name: "בציפוי זרעים" },
+    ],
+  },
 ];
 
 export default function HomePage() {
@@ -136,8 +164,23 @@ export default function HomePage() {
     });
   };
 
+  // Helper to find bread by ID across all categories
+  const findBreadById = (id: number) => {
+    for (const category of breadCategories) {
+      const bread = category.breads.find((b) => b.id === id);
+      if (bread) {
+        return {
+          ...bread,
+          price: category.price,
+          categoryTitle: category.title,
+        };
+      }
+    }
+    return null;
+  };
+
   const totalPrice = Object.entries(cart).reduce((sum, [id, quantity]) => {
-    const bread = breads.find((b) => b.id === Number(id));
+    const bread = findBreadById(Number(id));
     return sum + (bread?.price || 0) * quantity;
   }, 0);
 
@@ -195,9 +238,11 @@ export default function HomePage() {
 
     // Convert cart to items format
     const orderItems = Object.entries(cart).reduce((acc, [id, quantity]) => {
-      const bread = breads.find((b) => b.id === Number(id));
+      const bread = findBreadById(Number(id));
       if (bread) {
-        acc[bread.name] = quantity;
+        // Format: "Category - Option"
+        const fullName = `${bread.categoryTitle} - ${bread.name}`;
+        acc[fullName] = quantity;
       }
       return acc;
     }, {} as Record<string, number>);
@@ -312,52 +357,69 @@ export default function HomePage() {
       <div className="max-w-6xl mx-auto p-4 md:p-8 relative z-10">
         <div className="grid md:grid-cols-2 gap-8 items-start">
           {/* Products Section */}
-          <div className="space-y-4">
+          <div className="space-y-6">
             <h2 className="text-2xl font-bold text-amber-900 mb-4">
               מגוון הלחמים שלנו
             </h2>
-            {breads.map((bread) => (
-              <Card key={bread.id} className="bg-white/80 backdrop-blur-sm">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-amber-900 leading-relaxed">
-                        {bread.name}
-                      </h3>
-                      <p className="text-lg font-bold text-amber-700 mt-1">
-                        {bread.price} ₪
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => updateQuantity(bread.id, -1)}
-                        disabled={!cart[bread.id]}
-                        className="h-8 w-8"
-                      >
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <span className="w-8 text-center font-semibold">
-                        {cart[bread.id] || 0}
-                      </span>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => updateQuantity(bread.id, 1)}
-                        className="h-8 w-8 bg-amber-700 text-white hover:bg-amber-800"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
+            {breadCategories.map((category, categoryIndex) => (
+              <div key={categoryIndex} className="space-y-3">
+                {/* Category Title */}
+                <div className="bg-amber-800 text-white px-4 py-3 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-bold">{category.title}</h3>
+                    <span className="text-amber-100 font-semibold">
+                      {category.price} ₪
+                    </span>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+
+                {/* Category Options */}
+                <div className="space-y-2 pr-2">
+                  {category.breads.map((bread) => (
+                    <Card
+                      key={bread.id}
+                      className="bg-white/80 backdrop-blur-sm"
+                    >
+                      <CardContent className="p-3">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex-1">
+                            <h4 className="text-amber-900 leading-relaxed">
+                              {bread.name}
+                            </h4>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              onClick={() => updateQuantity(bread.id, -1)}
+                              disabled={!cart[bread.id]}
+                              className="h-8 w-8"
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                            <span className="w-8 text-center font-semibold">
+                              {cart[bread.id] || 0}
+                            </span>
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              onClick={() => updateQuantity(bread.id, 1)}
+                              className="h-8 w-8 bg-amber-700 text-white hover:bg-amber-800"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
 
           {/* Order Form */}
-          <div className="sticky top-4">
+          <div className="sticky top-24">
             <Card className="bg-white/80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-amber-900">
@@ -383,14 +445,16 @@ export default function HomePage() {
                         סיכום הזמנה:
                       </h3>
                       {Object.entries(cart).map(([id, quantity]) => {
-                        const bread = breads.find((b) => b.id === Number(id));
+                        const bread = findBreadById(Number(id));
                         if (!bread) return null;
                         return (
                           <div
                             key={id}
                             className="flex justify-between items-center text-sm"
                           >
-                            <span className="text-amber-900">{bread.name}</span>
+                            <span className="text-amber-900">
+                              {bread.categoryTitle} - {bread.name}
+                            </span>
                             <span className="font-semibold text-amber-700">
                               {quantity} × {bread.price}₪ ={" "}
                               {quantity * bread.price}₪
