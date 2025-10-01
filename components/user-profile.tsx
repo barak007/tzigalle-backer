@@ -69,7 +69,13 @@ export function UserProfile({ user }: UserProfileProps) {
               {user.email}
             </p>
           </div>
-          <div className="p-2">
+          <div className="p-2 space-y-1">
+            <button
+              onClick={() => router.push("/settings")}
+              className="w-full text-right px-3 py-2 text-sm text-amber-900 hover:bg-amber-100 rounded transition font-medium"
+            >
+              הגדרות פרופיל
+            </button>
             <button
               onClick={handleSignOut}
               className="w-full text-right px-3 py-2 text-sm text-amber-900 hover:bg-amber-100 rounded transition font-medium"

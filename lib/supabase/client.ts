@@ -29,7 +29,10 @@ export async function signInWithGoogle(returnTo?: string) {
 export async function signUpWithEmail(
   email: string,
   password: string,
-  fullName: string
+  fullName: string,
+  phone?: string,
+  address?: string,
+  city?: string
 ) {
   const supabase = createClient();
   const { data, error } = await supabase.auth.signUp({
@@ -38,6 +41,9 @@ export async function signUpWithEmail(
     options: {
       data: {
         full_name: fullName,
+        phone: phone || null,
+        address: address || null,
+        city: city || null,
       },
     },
   });

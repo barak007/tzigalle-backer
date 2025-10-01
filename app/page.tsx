@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { createClient } from "@/lib/supabase/client";
-import { Minus, Plus, ShoppingCart } from "lucide-react";
+import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -80,16 +80,18 @@ export default function HomePage() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
-  const [customerCity, setCustomerCity] = useState("כפר יהושוע");
+  const [customerCity, setCustomerCity] = useState("כפר יהושע");
   const [deliveryDate, setDeliveryDate] = useState("");
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [hasSavedOrder, setHasSavedOrder] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [showClearDialog, setShowClearDialog] = useState(false);
+  const [showEditFields, setShowEditFields] = useState(false);
 
   // Save current order data to localStorage whenever form changes (after initial load)
   useEffect(() => {
@@ -119,11 +121,42 @@ export default function HomePage() {
 
     if (hasData) {
       localStorage.setItem("currentOrder", JSON.stringify(orderData));
-      setHasSavedOrder(true);
     } else {
       localStorage.removeItem("currentOrder");
-      setHasSavedOrder(false);
     }
+
+    // Determine if "Clear Order" button should be visible
+    // Only show if there are changes beyond user profile details
+    const hasCart = Object.keys(cart).length > 0;
+    const hasDeliveryDate = deliveryDate !== "";
+    const hasNotes = notes.trim() !== "";
+
+    // Check if contact details differ from user profile
+    const profileName =
+      userProfile?.full_name ||
+      user?.user_metadata?.full_name ||
+      user?.email ||
+      "";
+    const profilePhone = userProfile?.phone || "";
+    const profileAddress = userProfile?.address || "";
+    const profileCity = userProfile?.city || "כפר יהושע";
+
+    const hasChangedName = customerName !== profileName;
+    const hasChangedPhone = customerPhone !== profilePhone;
+    const hasChangedAddress = customerAddress !== profileAddress;
+    const hasChangedCity = customerCity !== profileCity;
+
+    // Show button if there's a cart, delivery date, notes, or changed contact details
+    const shouldShowClearButton =
+      hasCart ||
+      hasDeliveryDate ||
+      hasNotes ||
+      hasChangedName ||
+      hasChangedPhone ||
+      hasChangedAddress ||
+      hasChangedCity;
+
+    setHasSavedOrder(shouldShowClearButton);
   }, [
     cart,
     customerName,
@@ -133,6 +166,8 @@ export default function HomePage() {
     deliveryDate,
     notes,
     isInitialLoad,
+    userProfile,
+    user,
   ]);
 
   // Check authentication and load saved order
@@ -147,12 +182,31 @@ export default function HomePage() {
 
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
-      setLoading(false);
 
-      // Pre-fill user data if logged in
+      // Load user profile from profiles table
       if (user) {
-        setCustomerName(user.user_metadata?.full_name || user.email || "");
+        supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single()
+          .then(({ data: profile }) => {
+            if (profile) {
+              setUserProfile(profile);
+              // Pre-fill user data from profile
+              setCustomerName(profile.full_name || user.email || "");
+              if (profile.phone) setCustomerPhone(profile.phone);
+              if (profile.address) setCustomerAddress(profile.address);
+              if (profile.city) setCustomerCity(profile.city);
+            } else {
+              setCustomerName(
+                user.user_metadata?.full_name || user.email || ""
+              );
+            }
+          });
       }
+
+      setLoading(false);
 
       // Load pending order from localStorage (from login redirect)
       const pendingOrder = localStorage.getItem("pendingOrder");
@@ -163,7 +217,7 @@ export default function HomePage() {
           setCustomerName(orderData.customerName || "");
           setCustomerPhone(orderData.customerPhone || "");
           setCustomerAddress(orderData.customerAddress || "");
-          setCustomerCity(orderData.customerCity || "כפר יהושוע");
+          setCustomerCity(orderData.customerCity || "כפר יהושע");
           setDeliveryDate(orderData.deliveryDate || "");
           setNotes(orderData.notes || "");
           localStorage.removeItem("pendingOrder");
@@ -182,13 +236,13 @@ export default function HomePage() {
           try {
             const orderData = JSON.parse(currentOrder);
             setCart(orderData.cart || {});
+            // Only load saved form data if not logged in (don't override profile data)
             if (!user) {
-              // Only load form data if not logged in (don't override user data)
               setCustomerName(orderData.customerName || "");
+              setCustomerPhone(orderData.customerPhone || "");
+              setCustomerAddress(orderData.customerAddress || "");
+              setCustomerCity(orderData.customerCity || "כפר יהושע");
             }
-            setCustomerPhone(orderData.customerPhone || "");
-            setCustomerAddress(orderData.customerAddress || "");
-            setCustomerCity(orderData.customerCity || "כפר יהושוע");
             setDeliveryDate(orderData.deliveryDate || "");
             setNotes(orderData.notes || "");
           } catch (e) {
@@ -364,7 +418,7 @@ export default function HomePage() {
       setCustomerName(user.user_metadata?.full_name || user.email || "");
       setCustomerPhone("");
       setCustomerAddress("");
-      setCustomerCity("כפר יהושוע");
+      setCustomerCity("כפר יהושע");
       setDeliveryDate("");
       setNotes("");
 
@@ -384,20 +438,33 @@ export default function HomePage() {
   };
 
   const handleClearOrder = () => {
+    // Clear cart and order-specific details
     setCart({});
-    setCustomerName(user?.user_metadata?.full_name || user?.email || "");
-    setCustomerPhone("");
-    setCustomerAddress("");
-    setCustomerCity("כפר יהושוע");
     setDeliveryDate("");
     setNotes("");
+
+    // Reset to user's saved profile info (if available)
+    if (userProfile) {
+      setCustomerName(userProfile.full_name || user?.email || "");
+      setCustomerPhone(userProfile.phone || "");
+      setCustomerAddress(userProfile.address || "");
+      setCustomerCity(userProfile.city || "כפר יהושע");
+    } else {
+      // If no profile, reset to basic user info
+      setCustomerName(user?.user_metadata?.full_name || user?.email || "");
+      setCustomerPhone("");
+      setCustomerAddress("");
+      setCustomerCity("כפר יהושע");
+    }
+
     localStorage.removeItem("currentOrder");
     setHasSavedOrder(false);
     setShowClearDialog(false);
+    setShowEditFields(false); // Reset edit mode
 
     toast({
       title: "ההזמנה נוקתה",
-      description: "כל פרטי ההזמנה נמחקו",
+      description: "העגלה והפרטים האישיים אופסו לברירת המחדל",
     });
   };
 
@@ -530,10 +597,25 @@ export default function HomePage() {
           <div className="sticky top-24">
             <Card className="bg-white/80 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-amber-900">
-                  <ShoppingCart className="h-5 w-5" />
-                  פרטי הזמנה
-                </CardTitle>
+                <div className="flex items-center justify-between min-h-[2rem]">
+                  <CardTitle className="flex items-center gap-2 text-amber-900">
+                    <ShoppingCart className="h-5 w-5" />
+                    פרטי הזמנה
+                  </CardTitle>
+                  {/* Clear Order Button in header */}
+                  {hasSavedOrder && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowClearDialog(true)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8"
+                      disabled={isSubmitting}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -579,51 +661,115 @@ export default function HomePage() {
                     </div>
                   )}
 
-                  <div className="space-y-2">
-                    <Label htmlFor="name">שם מלא *</Label>
-                    <Input
-                      id="name"
-                      required
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="הכנס שם מלא"
-                    />
-                  </div>
+                  {/* Show saved info summary if user has profile data and fields are hidden */}
+                  {user &&
+                    userProfile &&
+                    (userProfile.phone ||
+                      userProfile.address ||
+                      userProfile.city) &&
+                    !showEditFields && (
+                      <div className="space-y-2 p-4 bg-green-50 rounded-lg border border-green-200">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-semibold text-green-900 text-sm mb-2">
+                              ✓ הפרטים שלך ימולאו אוטומטית:
+                            </h3>
+                            <div className="space-y-1 text-sm text-green-800">
+                              <p>📧 {customerName}</p>
+                              {userProfile.phone && (
+                                <p>📞 {userProfile.phone}</p>
+                              )}
+                              {userProfile.address && (
+                                <p>
+                                  📍 {userProfile.address}
+                                  {userProfile.city && `, ${userProfile.city}`}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowEditFields(true)}
+                            className="border-green-300 text-green-700 hover:bg-green-100"
+                          >
+                            ערוך
+                          </Button>
+                        </div>
+                        <p className="text-xs text-green-700 mt-2">
+                          רוצה לשנות את הפרטים להזמנה זו? לחץ על "ערוך"
+                        </p>
+                      </div>
+                    )}
 
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">טלפון *</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      dir="rtl"
-                      required
-                      value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                      placeholder="050-1234567"
-                    />
-                  </div>
+                  {/* Conditionally show name field */}
+                  {(!user ||
+                    !userProfile ||
+                    !userProfile.full_name ||
+                    showEditFields) && (
+                    <div className="space-y-2">
+                      <Label htmlFor="name">שם מלא *</Label>
+                      <Input
+                        id="name"
+                        required
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                        placeholder="הכנס שם מלא"
+                      />
+                    </div>
+                  )}
 
-                  <div className="space-y-2">
-                    <Label htmlFor="address">כתובת *</Label>
-                    <Input
-                      id="address"
-                      required
-                      value={customerAddress}
-                      onChange={(e) => setCustomerAddress(e.target.value)}
-                      placeholder="רחוב ומספר בית"
-                    />
-                  </div>
+                  {/* Conditionally show phone, address, city fields */}
+                  {(!user ||
+                    !userProfile ||
+                    !userProfile.phone ||
+                    showEditFields) && (
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">טלפון *</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        dir="rtl"
+                        required
+                        value={customerPhone}
+                        onChange={(e) => setCustomerPhone(e.target.value)}
+                        placeholder="050-1234567"
+                      />
+                    </div>
+                  )}
 
-                  <div className="space-y-2">
-                    <Label htmlFor="city">עיר *</Label>
-                    <Input
-                      id="city"
-                      required
-                      value={customerCity}
-                      onChange={(e) => setCustomerCity(e.target.value)}
-                      placeholder="שם העיר"
-                    />
-                  </div>
+                  {(!user ||
+                    !userProfile ||
+                    !userProfile.address ||
+                    showEditFields) && (
+                    <div className="space-y-2">
+                      <Label htmlFor="address">כתובת *</Label>
+                      <Input
+                        id="address"
+                        required
+                        value={customerAddress}
+                        onChange={(e) => setCustomerAddress(e.target.value)}
+                        placeholder="רחוב ומספר בית"
+                      />
+                    </div>
+                  )}
+
+                  {(!user ||
+                    !userProfile ||
+                    !userProfile.city ||
+                    showEditFields) && (
+                    <div className="space-y-2">
+                      <Label htmlFor="city">עיר *</Label>
+                      <Input
+                        id="city"
+                        required
+                        value={customerCity}
+                        onChange={(e) => setCustomerCity(e.target.value)}
+                        placeholder="שם העיר"
+                      />
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label>תאריך משלוח *</Label>
@@ -675,19 +821,6 @@ export default function HomePage() {
                       ? `המשך להזמנה (${totalPrice} ₪)`
                       : `שלח הזמנה (${totalPrice} ₪)`}
                   </Button>
-
-                  {/* Clear Order Button - show only when there's saved data */}
-                  {hasSavedOrder && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setShowClearDialog(true)}
-                      className="w-full border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800"
-                      disabled={isSubmitting}
-                    >
-                      נקה הזמנה
-                    </Button>
-                  )}
                 </form>
               </CardContent>
             </Card>

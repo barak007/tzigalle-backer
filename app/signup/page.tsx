@@ -25,6 +25,9 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +36,14 @@ export default function SignupPage() {
     setLoading(true);
     setError(null);
 
-    const { data, error } = await signUpWithEmail(email, password, fullName);
+    const { data, error } = await signUpWithEmail(
+      email,
+      password,
+      fullName,
+      phone,
+      address,
+      city
+    );
 
     if (error) {
       setError(error.message);
@@ -162,6 +172,48 @@ export default function SignupPage() {
                 minLength={6}
                 disabled={loading}
               />
+            </div>
+
+            {/* Optional Contact Information */}
+            <div className="space-y-4 pt-2 border-t border-gray-200">
+              <p className="text-sm text-muted-foreground">
+                פרטים נוספים (אופציונלי - ניתן למלא מאוחר יותר)
+              </p>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">טלפון</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  dir="rtl"
+                  placeholder="050-1234567"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="address">כתובת</Label>
+                <Input
+                  id="address"
+                  placeholder="רחוב ומספר בית"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="city">עיר</Label>
+                <Input
+                  id="city"
+                  placeholder="שם העיר"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
