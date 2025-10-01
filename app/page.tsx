@@ -37,7 +37,7 @@ export default function HomePage() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
-  const [customerCity, setCustomerCity] = useState("");
+  const [customerCity, setCustomerCity] = useState("כפר יהושוע");
   const [deliveryDate, setDeliveryDate] = useState("");
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -140,7 +140,7 @@ export default function HomePage() {
       setCustomerName("");
       setCustomerPhone("");
       setCustomerAddress("");
-      setCustomerCity("");
+      setCustomerCity("כפר יהושוע");
       setDeliveryDate("");
       setNotes("");
     } catch (error) {
@@ -248,24 +248,6 @@ export default function HomePage() {
                 </CardContent>
               </Card>
             ))}
-
-            {/* Info Card */}
-            <Card className="bg-amber-100/80 backdrop-blur-sm border-amber-300">
-              <CardContent className="p-4 space-y-2 text-sm">
-                <p className="font-semibold text-amber-900">
-                  כל הלחמים מגיעים פרוסים, ארוזים וטריים – ישר עד דלת הבית
-                </p>
-                <p className="text-amber-800">
-                  לקבלת לחם ביום שלישי – הזמנה עד יום ראשון
-                </p>
-                <p className="text-amber-800">
-                  לקבלת לחם ביום שישי – הזמנה עד יום רביעי
-                </p>
-                <p className="text-amber-800 font-semibold">
-                  טלפון: 052-5757744 יורם
-                </p>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Order Form */}
@@ -409,6 +391,44 @@ export default function HomePage() {
             </Card>
           </div>
         </div>
+
+        {/* Footer Info Card */}
+        <Card className="bg-gradient-to-br from-amber-100/90 to-amber-200/90 backdrop-blur-sm border-2 border-amber-300 shadow-lg mt-8">
+          <CardContent className="p-6 md:p-8">
+            <div className="grid md:grid-cols-3 gap-6 text-center md:text-right">
+              <div className="space-y-2">
+                <h3 className="text-lg font-bold text-amber-900 mb-3">
+                  🍞 איכות מובטחת
+                </h3>
+                <p className="text-amber-800 leading-relaxed">
+                  כל הלחמים מגיעים פרוסים, ארוזים וטריים – ישר עד דלת הבית
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-lg font-bold text-amber-900 mb-3">
+                  📅 זמני הזמנה
+                </h3>
+                <p className="text-amber-800">
+                  לקבלת לחם ביום <span className="font-semibold">שלישי</span> –
+                  הזמנה עד יום ראשון
+                </p>
+                <p className="text-amber-800">
+                  לקבלת לחם ביום <span className="font-semibold">שישי</span> –
+                  הזמנה עד יום רביעי
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-lg font-bold text-amber-900 mb-3">
+                  📞 צור קשר
+                </h3>
+                <p className="text-amber-900 font-bold text-xl">052-5757744</p>
+                <p className="text-amber-800 font-semibold">יורם</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
