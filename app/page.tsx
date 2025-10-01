@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -31,47 +31,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { createOrder } from "@/app/actions/orders";
 import { useToast } from "@/hooks/use-toast";
-
-const breadCategories = [
-  {
-    title: "לחם חיטה מלאה",
-    price: 24,
-    breads: [
-      { id: 1, name: "בציפוי צ'יה" },
-      { id: 2, name: "בציפוי שומשום" },
-      { id: 3, name: "עם עגבניות מיובשות" },
-      { id: 4, name: "עם זיתים" },
-    ],
-  },
-  {
-    title: "לחם זרעים",
-    price: 28,
-    breads: [
-      { id: 5, name: "עם שומשום" },
-      { id: 6, name: "עם גרעיני דלעת" },
-      { id: 7, name: "עם צ'יה" },
-      { id: 8, name: "עם פשתן" },
-      { id: 9, name: "עם פרג" },
-    ],
-  },
-  {
-    title: "לחם כוסמין",
-    price: 28,
-    breads: [
-      { id: 10, name: "בציפוי שומשום" },
-      { id: 11, name: "בציפוי צ'יה" },
-      { id: 12, name: "עם פרג ואגוזים" },
-    ],
-  },
-  {
-    title: "לחם ארבעה קמחים",
-    price: 28,
-    breads: [
-      { id: 13, name: "בציפוי שומשום" },
-      { id: 14, name: "בציפוי זרעים" },
-    ],
-  },
-];
+import { BREAD_CATEGORIES } from "@/lib/constants/bread-categories";
+import { User, UserProfile } from "@/lib/types/user";
 
 export default function HomePage() {
   const router = useRouter();
@@ -85,8 +46,8 @@ export default function HomePage() {
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasSavedOrder, setHasSavedOrder] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -169,6 +130,13 @@ export default function HomePage() {
     userProfile,
     user,
   ]);
+
+  // Helper function to determine if a field should be shown
+  const shouldShowField = (fieldName: keyof UserProfile) => {
+    if (showEditFields) return true;
+    if (!user || !userProfile) return true;
+    return !userProfile[fieldName];
+  };
 
   // Check authentication and load saved order
   useEffect(() => {
@@ -298,28 +266,29 @@ export default function HomePage() {
 
   // Tuesday delivery - order deadline is Sunday (day 0)
   // Friday delivery - order deadline is Wednesday (day 3)
-  const tuesdayData = getNextDeliveryDate(2, 0); // Tuesday delivery, Sunday deadline
-  const fridayData = getNextDeliveryDate(5, 3); // Friday delivery, Wednesday deadline
+  const deliveryOptions = useMemo(() => {
+    const tuesdayData = getNextDeliveryDate(2, 0); // Tuesday delivery, Sunday deadline
+    const fridayData = getNextDeliveryDate(5, 3); // Friday delivery, Wednesday deadline
 
-  // Order delivery options by date
-  const deliveryOptions = [
-    {
-      value: "tuesday",
-      label: "יום שלישי",
-      date: tuesdayData.date,
-      dateString: tuesdayData.dateString,
-      deadline: `הזמנה עד יום ראשון (${tuesdayData.deadlineString})`,
-      daysLeft: tuesdayData.daysLeft,
-    },
-    {
-      value: "friday",
-      label: "יום שישי",
-      date: fridayData.date,
-      dateString: fridayData.dateString,
-      deadline: `הזמנה עד יום רביעי (${fridayData.deadlineString})`,
-      daysLeft: fridayData.daysLeft,
-    },
-  ].sort((a, b) => a.date.getTime() - b.date.getTime());
+    return [
+      {
+        value: "tuesday",
+        label: "יום שלישי",
+        date: tuesdayData.date,
+        dateString: tuesdayData.dateString,
+        deadline: `הזמנה עד יום ראשון (${tuesdayData.deadlineString})`,
+        daysLeft: tuesdayData.daysLeft,
+      },
+      {
+        value: "friday",
+        label: "יום שישי",
+        date: fridayData.date,
+        dateString: fridayData.dateString,
+        deadline: `הזמנה עד יום רביעי (${fridayData.deadlineString})`,
+        daysLeft: fridayData.daysLeft,
+      },
+    ].sort((a, b) => a.date.getTime() - b.date.getTime());
+  }, []); // Empty dependency array since these dates don't change based on state
 
   const updateQuantity = (breadId: number, change: number) => {
     setCart((prev) => {
@@ -334,7 +303,7 @@ export default function HomePage() {
 
   // Helper to find bread by ID across all categories
   const findBreadById = (id: number) => {
-    for (const category of breadCategories) {
+    for (const category of BREAD_CATEGORIES) {
       const bread = category.breads.find((b) => b.id === id);
       if (bread) {
         return {
@@ -562,7 +531,7 @@ export default function HomePage() {
             <h2 className="text-2xl font-bold text-amber-900 mb-4">
               מגוון הלחמים שלנו
             </h2>
-            {breadCategories.map((category, categoryIndex) => (
+            {BREAD_CATEGORIES.map((category, categoryIndex) => (
               <div key={categoryIndex} className="space-y-3">
                 {/* Category Title */}
                 <div className="bg-amber-800 text-white px-4 py-3 rounded-lg">
@@ -730,10 +699,7 @@ export default function HomePage() {
                     )}
 
                   {/* Conditionally show name field */}
-                  {(!user ||
-                    !userProfile ||
-                    !userProfile.full_name ||
-                    showEditFields) && (
+                  {shouldShowField("full_name") && (
                     <div className="space-y-2">
                       <Label htmlFor="name">שם מלא *</Label>
                       <Input
@@ -747,10 +713,7 @@ export default function HomePage() {
                   )}
 
                   {/* Conditionally show phone, address, city fields */}
-                  {(!user ||
-                    !userProfile ||
-                    !userProfile.phone ||
-                    showEditFields) && (
+                  {shouldShowField("phone") && (
                     <div className="space-y-2">
                       <Label htmlFor="phone">טלפון *</Label>
                       <Input
@@ -765,10 +728,7 @@ export default function HomePage() {
                     </div>
                   )}
 
-                  {(!user ||
-                    !userProfile ||
-                    !userProfile.address ||
-                    showEditFields) && (
+                  {shouldShowField("address") && (
                     <div className="space-y-2">
                       <Label htmlFor="address">כתובת *</Label>
                       <Input
@@ -781,10 +741,7 @@ export default function HomePage() {
                     </div>
                   )}
 
-                  {(!user ||
-                    !userProfile ||
-                    !userProfile.city ||
-                    showEditFields) && (
+                  {shouldShowField("city") && (
                     <div className="space-y-2">
                       <Label htmlFor="city">עיר *</Label>
                       <Input

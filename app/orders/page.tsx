@@ -10,6 +10,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { CancelOrderButton } from "@/components/cancel-order-button";
+import { ORDER_STATUSES } from "@/lib/constants/order-status";
+import { formatDate } from "@/lib/utils/dates";
 
 export default async function OrdersPage() {
   const supabase = await createClient();
@@ -31,34 +33,6 @@ export default async function OrdersPage() {
   if (error) {
     console.error("Error fetching orders:", error);
   }
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Badge variant="secondary">ממתין</Badge>;
-      case "completed":
-        return (
-          <Badge variant="default" className="bg-green-600">
-            הושלם
-          </Badge>
-        );
-      case "archived":
-        return <Badge variant="outline">בארכיון</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat("he-IL", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date);
-  };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("he-IL", {
@@ -109,7 +83,17 @@ export default async function OrdersPage() {
                       </CardDescription>
                     </div>
                     <div className="flex flex-col gap-2 items-end">
-                      {getStatusBadge(order.status)}
+                      <Badge
+                        variant={
+                          ORDER_STATUSES[
+                            order.status as keyof typeof ORDER_STATUSES
+                          ]?.badge || "default"
+                        }
+                      >
+                        {ORDER_STATUSES[
+                          order.status as keyof typeof ORDER_STATUSES
+                        ]?.label || order.status}
+                      </Badge>
                       {(order.status === "pending" ||
                         order.status === "confirmed") && (
                         <CancelOrderButton orderId={order.id} />

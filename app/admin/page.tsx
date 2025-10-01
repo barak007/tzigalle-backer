@@ -35,6 +35,8 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import { ORDER_STATUSES } from "@/lib/constants/order-status";
+import { formatDate, formatDeliveryDate } from "@/lib/utils/dates";
 
 type Order = {
   id: string;
@@ -56,24 +58,6 @@ type Order = {
   archived: boolean;
 };
 
-const statusLabels: Record<string, string> = {
-  pending: "ממתין",
-  confirmed: "אושר",
-  preparing: "בהכנה",
-  ready: "מוכן למשלוח",
-  delivered: "נמסר",
-  cancelled: "בוטל",
-};
-
-const statusColors: Record<string, string> = {
-  pending: "bg-yellow-100 text-yellow-800 border-yellow-300",
-  confirmed: "bg-blue-100 text-blue-800 border-blue-300",
-  preparing: "bg-purple-100 text-purple-800 border-purple-300",
-  ready: "bg-green-100 text-green-800 border-green-300",
-  delivered: "bg-gray-100 text-gray-800 border-gray-300",
-  cancelled: "bg-red-100 text-red-800 border-red-300",
-};
-
 export default function AdminPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -82,6 +66,9 @@ export default function AdminPage() {
   const [showArchived, setShowArchived] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+
+  // Create a single Supabase client instance for the entire component
+  const supabase = useMemo(() => createClient(), []);
 
   // Calculate next delivery dates
   const getNextDeliveryDate = (targetDay: number) => {
@@ -103,21 +90,11 @@ export default function AdminPage() {
   const nextDeliveryDay = nextTuesday < nextFriday ? "tuesday" : "friday";
   const nextDeliveryDate = nextTuesday < nextFriday ? nextTuesday : nextFriday;
 
-  const formatDeliveryDate = (deliveryDay: string) => {
-    const date = deliveryDay === "tuesday" ? nextTuesday : nextFriday;
-    return date.toLocaleDateString("he-IL", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
-  };
-
   useEffect(() => {
     fetchOrders();
   }, []);
 
   const fetchOrders = async () => {
-    const supabase = createClient();
     const { data, error } = await supabase
       .from("orders")
       .select("*")
@@ -145,14 +122,12 @@ export default function AdminPage() {
   };
 
   const handleLogout = async () => {
-    const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/admin/login");
     router.refresh();
   };
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
-    const supabase = createClient();
     const { error } = await supabase
       .from("orders")
       .update({ status: newStatus, updated_at: new Date().toISOString() })
@@ -168,7 +143,10 @@ export default function AdminPage() {
     } else {
       toast({
         title: "עודכן בהצלחה",
-        description: `הסטטוס עודכן ל${statusLabels[newStatus]}`,
+        description: `הסטטוס עודכן ל${
+          ORDER_STATUSES[newStatus as keyof typeof ORDER_STATUSES]?.label ||
+          newStatus
+        }`,
       });
       fetchOrders();
     }
@@ -178,7 +156,6 @@ export default function AdminPage() {
     orderId: string,
     currentArchived: boolean
   ) => {
-    const supabase = createClient();
     const { error } = await supabase
       .from("orders")
       .update({
@@ -395,7 +372,7 @@ export default function AdminPage() {
               {nextDeliveryDay === "tuesday" ? "יום שלישי" : "יום שישי"}
             </CardTitle>
             <CardDescription className="text-amber-800">
-              {formatDeliveryDate(nextDeliveryDay)}
+              {formatDeliveryDate(nextDeliveryDate)}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -525,7 +502,11 @@ export default function AdminPage() {
             <span className="text-sm font-semibold">סינון פעיל:</span>
             {filterStatus !== "all" && (
               <Badge variant="secondary" className="gap-2">
-                סטטוס: {statusLabels[filterStatus]}
+                סטטוס:{" "}
+                {filterStatus === "all"
+                  ? "הכל"
+                  : ORDER_STATUSES[filterStatus as keyof typeof ORDER_STATUSES]
+                      ?.label || filterStatus}
                 <button
                   onClick={() => setFilterStatus("all")}
                   className="hover:bg-gray-300 rounded-full px-1"
@@ -580,25 +561,22 @@ export default function AdminPage() {
                           {order.customer_name}
                         </CardTitle>
                         <CardDescription className="text-sm text-muted-foreground">
-                          הזמנה מתאריך:{" "}
-                          {new Date(order.created_at).toLocaleDateString(
-                            "he-IL"
-                          )}{" "}
-                          בשעה{" "}
-                          {new Date(order.created_at).toLocaleTimeString(
-                            "he-IL",
-                            {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }
-                          )}
+                          הזמנה מתאריך: {formatDate(order.created_at, "short")}{" "}
+                          בשעה {formatDate(order.created_at, "time")}
                         </CardDescription>
                       </div>
                       <div className="flex flex-col gap-2 items-end">
                         <Badge
-                          className={`${statusColors[order.status]} border`}
+                          className={`${
+                            ORDER_STATUSES[
+                              order.status as keyof typeof ORDER_STATUSES
+                            ]?.color ||
+                            "bg-gray-100 text-gray-800 border-gray-300"
+                          } border`}
                         >
-                          {statusLabels[order.status]}
+                          {ORDER_STATUSES[
+                            order.status as keyof typeof ORDER_STATUSES
+                          ]?.label || order.status}
                         </Badge>
                         {order.archived && (
                           <Badge className="bg-slate-100 text-slate-600 border-slate-300">
@@ -635,7 +613,11 @@ export default function AdminPage() {
                             ? "יום שלישי"
                             : "יום שישי"}
                           {" - "}
-                          {formatDeliveryDate(order.delivery_date)}
+                          {formatDeliveryDate(
+                            order.delivery_date === "tuesday"
+                              ? nextTuesday
+                              : nextFriday
+                          )}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
