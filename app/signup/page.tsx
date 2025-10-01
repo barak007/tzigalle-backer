@@ -177,7 +177,7 @@ export default function SignupPage() {
             {/* Optional Contact Information */}
             <div className="space-y-4 pt-2 border-t border-gray-200">
               <p className="text-sm text-muted-foreground">
-                פרטים נוספים (אופציונלי - ניתן למלא מאוחר יותר)
+                פרטים נוספים למשלוח (אופציונלי - ניתן למלא מאוחר יותר)
               </p>
 
               <div className="space-y-2">

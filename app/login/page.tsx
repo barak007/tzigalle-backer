@@ -26,16 +26,21 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [animateSignup, setAnimateSignup] = useState(false);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setAnimateSignup(false);
 
     const { data, error } = await signInWithEmail(email, password);
 
     if (error) {
       setError("אימייל או סיסמה שגויים");
+      setAnimateSignup(true);
+      // Reset animation after it completes
+      setTimeout(() => setAnimateSignup(false), 1000);
       setLoading(false);
       return;
     }
@@ -159,7 +164,9 @@ export default function LoginPage() {
             אין לך חשבון?{" "}
             <Link
               href={`/signup?returnTo=${encodeURIComponent(returnTo)}`}
-              className="text-amber-600 hover:underline font-medium"
+              className={`inline-block text-amber-600 hover:underline font-medium transition-colors duration-300 ${
+                animateSignup ? "animate-wiggle text-amber-700" : ""
+              }`}
             >
               הירשם
             </Link>
