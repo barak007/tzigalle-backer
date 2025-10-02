@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { adminLogin } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -27,42 +27,18 @@ export default function AdminLoginPage() {
     setIsLoading(true);
     setError("");
 
-    const supabase = createClient();
+    // Call server action for secure authentication
+    const result = await adminLogin(email, password);
 
-    const { data, error: signInError } = await supabase.auth.signInWithPassword(
-      {
-        email,
-        password,
-      }
-    );
-
-    if (signInError) {
-      setError("שגיאה בהתחברות. אנא בדוק את הפרטים ונסה שוב.");
+    if (!result.success) {
+      setError(result.error || "שגיאה בהתחברות");
       setIsLoading(false);
       return;
     }
 
-    if (data.user) {
-      // Check if user is admin
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", data.user.id)
-        .single();
-
-      if (!profile || profile.role !== "admin") {
-        setError("אין לך הרשאות גישה למערכת הניהול");
-        await supabase.auth.signOut();
-        setIsLoading(false);
-        return;
-      }
-
-      // Redirect to admin dashboard
-      router.push("/admin");
-      router.refresh();
-    }
-
-    setIsLoading(false);
+    // Redirect to admin dashboard on success
+    router.push("/admin");
+    router.refresh();
   };
 
   return (
