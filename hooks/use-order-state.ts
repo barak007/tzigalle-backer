@@ -3,7 +3,10 @@ import { createClient } from "@/lib/supabase/client";
 import { User, UserProfile } from "@/lib/types/user";
 import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/use-debounce";
-import { BREAD_CATEGORIES } from "@/lib/constants/bread-categories";
+import {
+  BREAD_CATEGORIES,
+  BreadCategory,
+} from "@/lib/constants/bread-categories";
 import { DEFAULT_CITY } from "@/lib/constants/cities";
 
 export function useOrderState() {
@@ -14,6 +17,11 @@ export function useOrderState() {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Catalog state
+  const [catalog, setCatalog] = useState<BreadCategory[]>(BREAD_CATEGORIES);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogRevision, setCatalogRevision] = useState<number>(0);
 
   // Order state
   const [cart, setCart] = useState<Record<number, number>>({});
@@ -36,7 +44,7 @@ export function useOrderState() {
   const [deliveryDateError, setDeliveryDateError] = useState("");
 
   // Save to localStorage with debounce
-  const saveToLocalStorage = useCallback((orderData: any) => {
+  const saveToLocalStorage = useCallback((orderData: any, revision: number) => {
     const hasData =
       Object.keys(orderData.cart).length > 0 ||
       orderData.customerName.trim() !== "" ||
@@ -46,7 +54,10 @@ export function useOrderState() {
       orderData.notes.trim() !== "";
 
     if (hasData) {
-      localStorage.setItem("currentOrder", JSON.stringify(orderData));
+      localStorage.setItem(
+        "currentOrder",
+        JSON.stringify({ ...orderData, catalogRevision: revision })
+      );
     } else {
       localStorage.removeItem("currentOrder");
     }
@@ -54,9 +65,42 @@ export function useOrderState() {
 
   const debouncedSaveToLocalStorage = useDebounce(saveToLocalStorage, 500);
 
+  // Fetch catalog from database
+  useEffect(() => {
+    const fetchCatalog = async () => {
+      setCatalogLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("product_catalog")
+          .select("revision, catalog_data")
+          .eq("is_active", true)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .single();
+
+        if (!error && data?.catalog_data) {
+          setCatalog(data.catalog_data as BreadCategory[]);
+          setCatalogRevision(data.revision || 0);
+        } else {
+          // Fallback to default catalog if none found
+          setCatalog(BREAD_CATEGORIES);
+          setCatalogRevision(0);
+        }
+      } catch (error) {
+        console.error("Error fetching catalog:", error);
+        setCatalog(BREAD_CATEGORIES);
+        setCatalogRevision(0);
+      } finally {
+        setCatalogLoading(false);
+      }
+    };
+
+    fetchCatalog();
+  }, [supabase]);
+
   // Save order data to localStorage whenever form changes
   useEffect(() => {
-    if (isInitialLoad) {
+    if (isInitialLoad || catalogLoading) {
       return;
     }
 
@@ -70,7 +114,7 @@ export function useOrderState() {
       notes,
     };
 
-    debouncedSaveToLocalStorage(orderData);
+    debouncedSaveToLocalStorage(orderData, catalogRevision);
     setHasSavedOrder(Object.keys(cart).length > 0);
   }, [
     cart,
@@ -81,6 +125,8 @@ export function useOrderState() {
     deliveryDate,
     notes,
     isInitialLoad,
+    catalogLoading,
+    catalogRevision,
     debouncedSaveToLocalStorage,
   ]);
 
@@ -113,12 +159,39 @@ export function useOrderState() {
       }
 
       setLoading(false);
+    };
 
+    initializeOrder();
+  }, [supabase]);
+
+  // Load saved orders after catalog is loaded
+  useEffect(() => {
+    if (catalogLoading || isInitialLoad) {
+      return;
+    }
+
+    const loadSavedOrders = () => {
       // Load pending order if exists
       const pendingOrder = localStorage.getItem("pendingOrder");
       if (pendingOrder) {
         try {
           const orderData = JSON.parse(pendingOrder);
+
+          // Check catalog revision
+          if (
+            orderData.catalogRevision !== undefined &&
+            orderData.catalogRevision !== catalogRevision
+          ) {
+            toast({
+              title: "הזמנה לא נטענה",
+              description:
+                "קטלוג המוצרים השתנה מאז ההזמנה הקודמת. אנא צור הזמנה חדשה.",
+              variant: "destructive",
+            });
+            localStorage.removeItem("pendingOrder");
+            return;
+          }
+
           setCart(orderData.cart || {});
           setCustomerName(orderData.customerName || "");
           setCustomerPhone(orderData.customerPhone || "");
@@ -141,8 +214,23 @@ export function useOrderState() {
         if (currentOrder) {
           try {
             const orderData = JSON.parse(currentOrder);
+
+            // Check catalog revision
+            if (
+              orderData.catalogRevision !== undefined &&
+              orderData.catalogRevision !== catalogRevision
+            ) {
+              toast({
+                title: "הזמנה שמורה נמחקה",
+                description: "קטלוג המוצרים השתנה. אנא צור הזמנה חדשה.",
+                variant: "destructive",
+              });
+              localStorage.removeItem("currentOrder");
+              return;
+            }
+
             setCart(orderData.cart || {});
-            if (!currentUser) {
+            if (!user) {
               setCustomerName(orderData.customerName || "");
               setCustomerPhone(orderData.customerPhone || "");
               setCustomerAddress(orderData.customerAddress || "");
@@ -155,27 +243,29 @@ export function useOrderState() {
           }
         }
       }
-
-      setIsInitialLoad(false);
     };
 
-    initializeOrder();
-  }, [supabase, toast]);
+    loadSavedOrders();
+    setIsInitialLoad(false);
+  }, [catalogLoading, catalogRevision, user, toast]);
 
   // Helper to find bread by ID
-  const findBreadById = useCallback((id: number) => {
-    for (const category of BREAD_CATEGORIES) {
-      const bread = category.breads.find((b) => b.id === id);
-      if (bread) {
-        return {
-          ...bread,
-          price: category.price,
-          categoryTitle: category.title,
-        };
+  const findBreadById = useCallback(
+    (id: number) => {
+      for (const category of catalog) {
+        const bread = category.breads.find((b) => b.id === id);
+        if (bread) {
+          return {
+            ...bread,
+            price: category.price,
+            categoryTitle: category.title,
+          };
+        }
       }
-    }
-    return null;
-  }, []);
+      return null;
+    },
+    [catalog]
+  );
 
   // Calculate totals
   const totalPrice = useMemo(() => {
@@ -268,6 +358,11 @@ export function useOrderState() {
     user,
     userProfile,
     loading,
+
+    // Catalog
+    catalog,
+    catalogLoading,
+    catalogRevision,
 
     // Order data
     cart,

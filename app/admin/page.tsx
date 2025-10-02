@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import AdminPageClient from "./admin-page-client";
+import { getActiveCatalog } from "@/app/actions/catalog";
 
 export default async function AdminPage() {
   // Server-side authentication and authorization check
@@ -38,6 +39,15 @@ export default async function AdminPage() {
     // Return empty array on error - client can handle it
   }
 
+  // Fetch the active catalog
+  const catalogData = await getActiveCatalog();
+
   // Pass data to client component
-  return <AdminPageClient initialOrders={orders || []} />;
+  return (
+    <AdminPageClient
+      initialOrders={orders || []}
+      initialCatalog={catalogData.categories}
+      catalogRevision={catalogData.revision}
+    />
+  );
 }

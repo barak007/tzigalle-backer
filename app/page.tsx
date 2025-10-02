@@ -4,7 +4,6 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { BREAD_CATEGORIES } from "@/lib/constants/bread-categories";
 import { createOrder } from "@/app/actions/orders";
 import { validateIsraeliPhone } from "@/lib/utils/phone-validator";
 import { getDeliveryOptions } from "@/lib/utils/order-delivery";
@@ -28,6 +27,8 @@ export default function HomePage() {
   const {
     user,
     loading,
+    catalog,
+    catalogLoading,
     cart,
     customerName,
     customerPhone,
@@ -240,85 +241,98 @@ export default function HomePage() {
       </header>
 
       <div className="max-w-6xl mx-auto p-4 md:p-8 relative z-10">
-        <div className="grid md:grid-cols-2 gap-8 items-start">
-          {/* Products Section */}
-          <div className="space-y-6">
-            <ProductList
-              categories={BREAD_CATEGORIES}
-              cart={cart}
-              onAddToCart={addToCart}
-              onRemoveFromCart={removeFromCart}
-            />
+        {catalogLoading ? (
+          <Card className="bg-white/90 backdrop-blur-sm">
+            <CardContent className="p-8 text-center">
+              <div className="flex flex-col items-center gap-2">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-900"></div>
+                <p>טוען קטלוג מוצרים...</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-8 items-start">
+            {/* Products Section */}
+            <div className="space-y-6">
+              <ProductList
+                categories={catalog}
+                cart={cart}
+                onAddToCart={addToCart}
+                onRemoveFromCart={removeFromCart}
+              />
+            </div>
+
+            {/* Order Section */}
+            <div className="space-y-6">
+              {/* Order Summary */}
+              <OrderSummary
+                cart={cart}
+                totalPrice={totalPrice}
+                totalItems={totalItems}
+                categories={catalog}
+                onClearClick={() => setShowClearDialog(true)}
+              />
+
+              {/* Order Form */}
+              <Card className="bg-white/90 backdrop-blur-sm border-2 border-amber-200 shadow-xl">
+                <CardHeader>
+                  <CardTitle className="text-2xl text-amber-900">
+                    פרטי הזמנה
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Delivery Date Selection */}
+                  <DeliveryOptions
+                    options={deliveryOptions}
+                    selectedValue={
+                      deliveryDate
+                        ? deliveryOptions.find((opt) =>
+                            opt.date
+                              .toISOString()
+                              .startsWith(deliveryDate.split("T")[0])
+                          )?.value || ""
+                        : ""
+                    }
+                    deliveryDateError={deliveryDateError}
+                    onChange={handleDeliveryDateChange}
+                  />
+
+                  {/* Customer Details Form */}
+                  <OrderForm
+                    customerName={customerName}
+                    customerPhone={customerPhone}
+                    customerAddress={customerAddress}
+                    customerCity={customerCity}
+                    notes={notes}
+                    phoneError={phoneError}
+                    isSubmitting={isSubmitting}
+                    loading={loading}
+                    totalItems={totalItems}
+                    totalPrice={totalPrice}
+                    showEditFields={showEditFields}
+                    onCustomerNameChange={setCustomerName}
+                    onCustomerPhoneChange={(value) => {
+                      setCustomerPhone(value);
+                      if (phoneError) validatePhone(value);
+                    }}
+                    onCustomerAddressChange={setCustomerAddress}
+                    onCustomerCityChange={setCustomerCity}
+                    onNotesChange={setNotes}
+                    onSubmit={handleSubmit}
+                    onToggleEditFields={() =>
+                      setShowEditFields(!showEditFields)
+                    }
+                    hasUser={!!user}
+                    hasUserName={hasUserName}
+                    hasUserPhone={hasUserPhone}
+                    hasUserAddress={hasUserAddress}
+                    hasUserCity={hasUserCity}
+                  />
+                </CardContent>
+              </Card>
+            </div>
           </div>
-
-          {/* Order Section */}
-          <div className="space-y-6">
-            {/* Order Summary */}
-            <OrderSummary
-              cart={cart}
-              totalPrice={totalPrice}
-              totalItems={totalItems}
-              categories={BREAD_CATEGORIES}
-              onClearClick={() => setShowClearDialog(true)}
-            />
-
-            {/* Order Form */}
-            <Card className="bg-white/90 backdrop-blur-sm border-2 border-amber-200 shadow-xl">
-              <CardHeader>
-                <CardTitle className="text-2xl text-amber-900">
-                  פרטי הזמנה
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Delivery Date Selection */}
-                <DeliveryOptions
-                  options={deliveryOptions}
-                  selectedValue={
-                    deliveryDate
-                      ? deliveryOptions.find((opt) =>
-                          opt.date
-                            .toISOString()
-                            .startsWith(deliveryDate.split("T")[0])
-                        )?.value || ""
-                      : ""
-                  }
-                  deliveryDateError={deliveryDateError}
-                  onChange={handleDeliveryDateChange}
-                />
-
-                {/* Customer Details Form */}
-                <OrderForm
-                  customerName={customerName}
-                  customerPhone={customerPhone}
-                  customerAddress={customerAddress}
-                  customerCity={customerCity}
-                  notes={notes}
-                  phoneError={phoneError}
-                  isSubmitting={isSubmitting}
-                  loading={loading}
-                  totalItems={totalItems}
-                  totalPrice={totalPrice}
-                  showEditFields={showEditFields}
-                  onCustomerNameChange={setCustomerName}
-                  onCustomerPhoneChange={(value) => {
-                    setCustomerPhone(value);
-                    if (phoneError) validatePhone(value);
-                  }}
-                  onCustomerAddressChange={setCustomerAddress}
-                  onCustomerCityChange={setCustomerCity}
-                  onNotesChange={setNotes}
-                  onSubmit={handleSubmit}
-                  onToggleEditFields={() => setShowEditFields(!showEditFields)}
-                  hasUser={!!user}
-                  hasUserName={hasUserName}
-                  hasUserPhone={hasUserPhone}
-                  hasUserAddress={hasUserAddress}
-                  hasUserCity={hasUserCity}
-                />
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+        )}
 
         {/* Footer Info */}
         <FooterInfo />

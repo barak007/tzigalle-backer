@@ -114,7 +114,7 @@ export function OrderSummary({
             </div>
           </>
         ) : (
-          <div className="text-center py-8 text-amber-700">
+          <div className="text-center py-2 text-amber-700">
             <div className="text-4xl mb-2">🛒</div>
             <p>אין פריטים בסל</p>
             <p className="text-sm mt-1">בחר לחמים מהתפריט</p>
