@@ -126,6 +126,16 @@ Go to your Supabase SQL Editor and run all migrations in order from `supabase/mi
 - `20241001000003_fix_rls_policies.sql`
 - `20241001000004_fix_infinite_recursion.sql`
 - `20241001000005_add_archived_field.sql`
+- `20241001000006_update_user_roles.sql`
+- `20241001000007_add_user_id_to_orders.sql`
+- `20241001000008_auto_create_profile.sql`
+- `20241001000010_fix_rls_conflicts.sql`
+- `20241001000011_add_full_name_column.sql`
+- `20241002000001_add_user_contact_info.sql`
+- `20241002000002_convert_items_to_old_format.sql`
+- `20241002000003_fix_rls_performance.sql`
+- `20241002000004_fix_profile_creation_role.sql`
+- `20241002000005_add_performance_indexes.sql` ⭐ NEW
 
 5. **Create admin user**
 
