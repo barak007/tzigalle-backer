@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { logError, getUserErrorMessage } from "@/lib/utils/error-handler";
 
 export interface OrderData {
   customerName: string;
@@ -71,10 +72,18 @@ export async function createOrder(orderData: OrderData): Promise<OrderResult> {
       .limit(1);
 
     if (checkError) {
-      console.error("Error checking existing orders:", checkError);
+      logError(checkError, {
+        action: "createOrder:checkExistingOrders",
+        userId: user.id,
+        data: { orderData: { deliveryDate: orderData.deliveryDate } },
+      });
+
       return {
         success: false,
-        error: "אירעה שגיאה בבדיקת הזמנות קיימות",
+        error: getUserErrorMessage(
+          checkError,
+          "אירעה שגיאה בבדיקת הזמנות קיימות"
+        ),
       };
     }
 
@@ -105,10 +114,19 @@ export async function createOrder(orderData: OrderData): Promise<OrderResult> {
       .single();
 
     if (error) {
-      console.error("Error creating order:", error);
+      logError(error, {
+        action: "createOrder:insertOrder",
+        userId: user.id,
+        data: {
+          totalPrice: orderData.totalPrice,
+          deliveryDate: orderData.deliveryDate,
+          itemsCount: orderData.items.length,
+        },
+      });
+
       return {
         success: false,
-        error: "שגיאה בשליחת ההזמנה. אנא נסה שוב",
+        error: getUserErrorMessage(error, "שגיאה בשליחת ההזמנה. אנא נסה שוב"),
       };
     }
 
@@ -120,10 +138,17 @@ export async function createOrder(orderData: OrderData): Promise<OrderResult> {
       orderId: data.id,
     };
   } catch (error) {
-    console.error("Unexpected error:", error);
+    logError(error, {
+      action: "createOrder:unexpected",
+      data: {
+        deliveryDate: orderData.deliveryDate,
+        itemsCount: orderData.items.length,
+      },
+    });
+
     return {
       success: false,
-      error: "שגיאה בלתי צפויה",
+      error: getUserErrorMessage(error, "שגיאה בלתי צפויה"),
     };
   }
 }
@@ -181,10 +206,15 @@ export async function cancelOrder(orderId: string): Promise<OrderResult> {
       .eq("user_id", user.id); // Double-check ownership
 
     if (updateError) {
-      console.error("Error cancelling order:", updateError);
+      logError(updateError, {
+        action: "cancelOrder:updateStatus",
+        userId: user.id,
+        data: { orderId, currentStatus: order.status },
+      });
+
       return {
         success: false,
-        error: "שגיאה בביטול ההזמנה",
+        error: getUserErrorMessage(updateError, "שגיאה בביטול ההזמנה"),
       };
     }
 
@@ -196,10 +226,14 @@ export async function cancelOrder(orderId: string): Promise<OrderResult> {
       orderId,
     };
   } catch (error) {
-    console.error("Unexpected error:", error);
+    logError(error, {
+      action: "cancelOrder:unexpected",
+      data: { orderId },
+    });
+
     return {
       success: false,
-      error: "שגיאה בלתי צפויה",
+      error: getUserErrorMessage(error, "שגיאה בלתי צפויה"),
     };
   }
 }
