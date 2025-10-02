@@ -114,8 +114,11 @@ Create a `.env.local` file:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+NEXT_PUBLIC_SITE_URL=https://your-production-domain.com
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 ```
+
+**Important**: `NEXT_PUBLIC_SITE_URL` should be set to your production domain URL (e.g., `https://tzigalle-backer.vercel.app`) to ensure Google OAuth redirects work correctly. For local development, use `http://localhost:3000`.
 
 4. **Run database migrations**
 
