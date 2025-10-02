@@ -65,6 +65,7 @@ export default function AdminPageClient({
   const [filterDelivery, setFilterDelivery] = useState<string>("all");
   const [showArchived, setShowArchived] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [updatingOrders, setUpdatingOrders] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   // Create a single Supabase client instance for the entire component
@@ -121,27 +122,95 @@ export default function AdminPageClient({
   };
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
-    const { error } = await supabase
-      .from("orders")
-      .update({ status: newStatus, updated_at: new Date().toISOString() })
-      .eq("id", orderId);
+    // Prevent concurrent updates to the same order
+    if (updatingOrders.has(orderId)) {
+      toast({
+        title: "אנא המתן",
+        description: "ההזמנה מתעדכנת כרגע",
+        variant: "default",
+      });
+      return;
+    }
 
-    if (error) {
-      console.error("Error updating order:", error);
+    // Mark order as being updated
+    setUpdatingOrders((prev) => new Set(prev).add(orderId));
+
+    // Optimistic update
+    setOrders((prevOrders) =>
+      prevOrders.map((order) =>
+        order.id === orderId ? { ...order, status: newStatus } : order
+      )
+    );
+
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .eq("id", orderId);
+
+      if (error) {
+        console.error("Error updating order:", error);
+
+        // Revert optimistic update on error
+        setOrders((prevOrders) =>
+          prevOrders.map((order) =>
+            order.id === orderId
+              ? {
+                  ...order,
+                  status:
+                    initialOrders.find((o) => o.id === orderId)?.status ||
+                    order.status,
+                }
+              : order
+          )
+        );
+
+        toast({
+          title: "שגיאה",
+          description: "שגיאה בעדכון ההזמנה",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "עודכן בהצלחה",
+          description: `הסטטוס עודכן ל${
+            ORDER_STATUSES[newStatus as keyof typeof ORDER_STATUSES]?.label ||
+            newStatus
+          }`,
+        });
+
+        // Fetch fresh data to ensure consistency
+        await fetchOrders();
+      }
+    } catch (error) {
+      console.error("Unexpected error updating order:", error);
+
+      // Revert optimistic update on error
+      setOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          order.id === orderId
+            ? {
+                ...order,
+                status:
+                  initialOrders.find((o) => o.id === orderId)?.status ||
+                  order.status,
+              }
+            : order
+        )
+      );
+
       toast({
         title: "שגיאה",
-        description: "שגיאה בעדכון ההזמנה",
+        description: "אירעה שגיאה בלתי צפויה",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "עודכן בהצלחה",
-        description: `הסטטוס עודכן ל${
-          ORDER_STATUSES[newStatus as keyof typeof ORDER_STATUSES]?.label ||
-          newStatus
-        }`,
+    } finally {
+      // Remove order from updating set
+      setUpdatingOrders((prev) => {
+        const next = new Set(prev);
+        next.delete(orderId);
+        return next;
       });
-      fetchOrders();
     }
   };
 
@@ -149,27 +218,84 @@ export default function AdminPageClient({
     orderId: string,
     currentArchived: boolean
   ) => {
-    const { error } = await supabase
-      .from("orders")
-      .update({
-        archived: !currentArchived,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", orderId);
+    // Prevent concurrent updates to the same order
+    if (updatingOrders.has(orderId)) {
+      toast({
+        title: "אנא המתן",
+        description: "ההזמנה מתעדכנת כרגע",
+        variant: "default",
+      });
+      return;
+    }
 
-    if (error) {
-      console.error("Error archiving order:", error);
+    // Mark order as being updated
+    setUpdatingOrders((prev) => new Set(prev).add(orderId));
+
+    // Optimistic update
+    const newArchivedState = !currentArchived;
+    setOrders((prevOrders) =>
+      prevOrders.map((order) =>
+        order.id === orderId ? { ...order, archived: newArchivedState } : order
+      )
+    );
+
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .update({
+          archived: newArchivedState,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", orderId);
+
+      if (error) {
+        console.error("Error archiving order:", error);
+
+        // Revert optimistic update on error
+        setOrders((prevOrders) =>
+          prevOrders.map((order) =>
+            order.id === orderId
+              ? { ...order, archived: currentArchived }
+              : order
+          )
+        );
+
+        toast({
+          title: "שגיאה",
+          description: "שגיאה בעדכון ההזמנה",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: newArchivedState ? "הועבר לארכיון" : "שוחזר מהארכיון",
+          description: "ההזמנה עודכנה בהצלחה",
+        });
+
+        // Fetch fresh data to ensure consistency
+        await fetchOrders();
+      }
+    } catch (error) {
+      console.error("Unexpected error toggling archive:", error);
+
+      // Revert optimistic update on error
+      setOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          order.id === orderId ? { ...order, archived: currentArchived } : order
+        )
+      );
+
       toast({
         title: "שגיאה",
-        description: "שגיאה בעדכון ההזמנה",
+        description: "אירעה שגיאה בלתי צפויה",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: !currentArchived ? "הועבר לארכיון" : "שוחזר מהארכיון",
-        description: "ההזמנה עודכנה בהצלחה",
+    } finally {
+      // Remove order from updating set
+      setUpdatingOrders((prev) => {
+        const next = new Set(prev);
+        next.delete(orderId);
+        return next;
       });
-      fetchOrders();
     }
   };
 
