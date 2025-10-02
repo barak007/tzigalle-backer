@@ -36,13 +36,13 @@ export function Header({ user }: HeaderProps) {
         <div className="flex justify-between items-center h-16">
           <Link
             href="/"
-            className="text-2xl font-serif font-bold text-amber-900 hover:text-amber-700 transition flex items-center gap-2"
+            className="text-4xl font-serif font-bold text-amber-900 hover:text-amber-700 transition flex items-center gap-2"
           >
             <Image
               src="/apple-touch-icon.png"
               alt="ציגלה"
-              width={32}
-              height={32}
+              width={38}
+              height={38}
               className="inline-block"
             />
             ציגלה

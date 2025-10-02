@@ -10,9 +10,9 @@ export default async function AdminPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Redirect to login if not authenticated
+  // Redirect to main login if not authenticated
   if (!user) {
-    redirect("/admin/login");
+    redirect("/login?returnTo=/admin");
   }
 
   // Server-side role check - CRITICAL SECURITY

@@ -7,7 +7,6 @@ export async function middleware(request: NextRequest) {
 
   // Allow access to login and signup pages without authentication
   if (
-    pathname === "/admin/login" ||
     pathname === "/login" ||
     pathname === "/signup" ||
     pathname.startsWith("/auth/")
@@ -63,8 +62,8 @@ export async function middleware(request: NextRequest) {
   // Protect admin routes
   if (pathname.startsWith("/admin")) {
     if (!user) {
-      // Redirect to login if not authenticated
-      const redirectUrl = new URL("/admin/login", request.url);
+      // Redirect to main login if not authenticated
+      const redirectUrl = new URL("/login?returnTo=/admin", request.url);
       return NextResponse.redirect(redirectUrl);
     }
 

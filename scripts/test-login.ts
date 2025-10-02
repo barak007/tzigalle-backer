@@ -108,7 +108,7 @@ async function testLogin() {
     console.log("   Make sure to:");
     console.log("   1. Clear browser cookies/cache");
     console.log("   2. Use an incognito window");
-    console.log("   3. Go to http://localhost:3000/admin/login");
+    console.log("   3. Go to http://localhost:3000/login");
 
     await supabase.auth.signOut();
   } catch (error) {

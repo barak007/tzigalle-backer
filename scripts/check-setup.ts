@@ -72,7 +72,7 @@ async function checkSetup() {
 
   if (!profilesError && admins && admins.length > 0) {
     console.log("✅ Setup appears to be complete!");
-    console.log("   You can now log in at: /admin/login");
+    console.log("   You can now log in at: /login");
   } else {
     console.log("⚠️  Setup is incomplete. Please:");
     if (profilesError) {

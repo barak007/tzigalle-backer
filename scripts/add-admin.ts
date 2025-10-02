@@ -169,7 +169,7 @@ async function createAdmin() {
     console.log("✅ Admin role assigned successfully");
     console.log("\n🎉 Admin user created successfully!");
     console.log(`📧 Email: ${email}`);
-    console.log("🔗 You can now login at: http://localhost:3000/admin/login\n");
+    console.log("🔗 You can now login at: http://localhost:3000/login\n");
   } catch (error) {
     console.error("❌ Unexpected error:", error);
     process.exit(1);

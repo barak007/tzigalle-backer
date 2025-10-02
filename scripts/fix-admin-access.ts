@@ -118,7 +118,7 @@ async function fixAdminAccess() {
     console.log("\n📝 Next steps:");
     console.log("   1. Close all browser tabs with your app");
     console.log("   2. Open a new incognito/private window");
-    console.log("   3. Go to: http://localhost:3000/admin/login");
+    console.log("   3. Go to: http://localhost:3000/login");
     console.log("   4. Log in with:");
     console.log(`      Email: ${user.email}`);
     console.log("      Password: (the one you created)");

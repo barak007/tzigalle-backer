@@ -52,7 +52,7 @@ async function clearSessions() {
 
     console.log("\n✅ All sessions cleared!");
     console.log("\n📝 Next steps:");
-    console.log("   1. Go to: http://localhost:3000/admin/login");
+    console.log("   1. Go to: http://localhost:3000/login");
     console.log("   2. Log in with your admin credentials");
     console.log("   3. You should now have full admin access");
   } catch (error) {
