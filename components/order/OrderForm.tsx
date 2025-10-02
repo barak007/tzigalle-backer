@@ -202,6 +202,11 @@ export function OrderForm({
               variant="outline"
               onClick={onToggleEditFields}
               className="w-full"
+              aria-label={
+                showEditFields
+                  ? "שמור שינויים לפרטים אישיים"
+                  : "ערוך פרטים אישיים"
+              }
             >
               {showEditFields ? "💾 שמור שינויים" : "✏️ ערוך פרטים אישיים"}
             </Button>

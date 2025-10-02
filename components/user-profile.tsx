@@ -46,11 +46,15 @@ export function UserProfile({ user }: UserProfileProps) {
         variant="outline"
         onClick={() => router.push("/orders")}
         className="border-amber-300 text-amber-900 hover:bg-amber-100 hover:border-amber-400"
+        aria-label="עבור לדף ההזמנות שלי"
       >
         ההזמנות שלי
       </Button>
       <div className="relative group">
-        <button className="relative h-10 w-10 rounded-full hover:ring-2 hover:ring-amber-400 hover:ring-offset-2 transition-all">
+        <button
+          className="relative h-10 w-10 rounded-full hover:ring-2 hover:ring-amber-400 hover:ring-offset-2 transition-all"
+          aria-label="פתח תפריט פרופיל"
+        >
           <Avatar className="h-10 w-10 border-2 border-amber-300">
             <AvatarImage src={avatarUrl} alt={displayName || ""} />
             <AvatarFallback className="bg-gradient-to-br from-amber-400 to-orange-500 text-white font-semibold">
@@ -73,12 +77,14 @@ export function UserProfile({ user }: UserProfileProps) {
             <button
               onClick={() => router.push("/settings")}
               className="w-full text-right px-3 py-2 text-sm text-amber-900 hover:bg-amber-100 rounded transition font-medium"
+              aria-label="עבור להגדרות פרופיל"
             >
               הגדרות פרופיל
             </button>
             <button
               onClick={handleSignOut}
               className="w-full text-right px-3 py-2 text-sm text-amber-900 hover:bg-amber-100 rounded transition font-medium"
+              aria-label="התנתק מהמערכת"
             >
               התנתק
             </button>

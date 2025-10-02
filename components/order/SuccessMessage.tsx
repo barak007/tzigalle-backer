@@ -26,10 +26,15 @@ export function SuccessMessage({ onNewOrder }: SuccessMessageProps) {
             <Button
               onClick={onNewOrder}
               className="bg-amber-600 hover:bg-amber-700"
+              aria-label="צור הזמנה חדשה"
             >
               הזמנה חדשה
             </Button>
-            <Button variant="outline" onClick={() => router.push("/orders")}>
+            <Button
+              variant="outline"
+              onClick={() => router.push("/orders")}
+              aria-label="הצג את ההזמנות שלי"
+            >
               הצג הזמנות שלי
             </Button>
           </div>

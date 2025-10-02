@@ -57,12 +57,16 @@ export function Header({ user }: HeaderProps) {
                   <Button
                     variant="ghost"
                     className="text-amber-900 hover:text-amber-700 hover:bg-amber-100"
+                    aria-label="התחבר למערכת"
                   >
                     התחבר
                   </Button>
                 </Link>
                 <Link href="/signup">
-                  <Button className="bg-amber-600 hover:bg-amber-700 text-white">
+                  <Button
+                    className="bg-amber-600 hover:bg-amber-700 text-white"
+                    aria-label="הירשם למערכת"
+                  >
                     הירשם
                   </Button>
                 </Link>

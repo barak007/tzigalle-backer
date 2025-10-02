@@ -33,10 +33,13 @@ export function ClearOrderDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="gap-2">
-          <AlertDialogCancel>ביטול</AlertDialogCancel>
+          <AlertDialogCancel aria-label="ביטול ניקוי הזמנה">
+            ביטול
+          </AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
             className="bg-red-600 hover:bg-red-700"
+            aria-label="אשר ניקוי הזמנה"
           >
             נקה הזמנה
           </AlertDialogAction>

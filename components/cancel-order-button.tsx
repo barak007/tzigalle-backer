@@ -58,6 +58,7 @@ export function CancelOrderButton({ orderId }: CancelOrderButtonProps) {
           variant="outline"
           size="sm"
           className="text-red-600 hover:text-red-700 hover:bg-red-50"
+          aria-label="פתח דיאלוג ביטול הזמנה"
         >
           <XCircle className="h-4 w-4 mr-1" />
           ביטול הזמנה
@@ -71,11 +72,14 @@ export function CancelOrderButton({ orderId }: CancelOrderButtonProps) {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>חזור</AlertDialogCancel>
+          <AlertDialogCancel aria-label="חזור מביטול ההזמנה">
+            חזור
+          </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleCancel}
             disabled={isLoading}
             className="bg-red-600 hover:bg-red-700"
+            aria-label={isLoading ? "מבטל הזמנה..." : "אשר ביטול הזמנה"}
           >
             {isLoading ? "מבטל..." : "בטל הזמנה"}
           </AlertDialogAction>
