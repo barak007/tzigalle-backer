@@ -12,10 +12,10 @@ export function createClient() {
 export async function signInWithGoogle(returnTo?: string) {
   const supabase = createClient();
   const redirectUrl = returnTo
-    ? `${location.origin}/auth/callback?returnTo=${encodeURIComponent(
+    ? `${ENV.NEXT_PUBLIC_SITE_URL}/auth/callback?returnTo=${encodeURIComponent(
         returnTo
       )}`
-    : `${location.origin}/auth/callback`;
+    : `${ENV.NEXT_PUBLIC_SITE_URL}/auth/callback`;
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
