@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { logError, getUserErrorMessage } from "@/lib/utils/error-handler";
 import { validateIsraeliPhone } from "@/lib/utils/phone-validator";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/utils/rate-limit";
 
 export interface OrderData {
   customerName: string;
@@ -42,6 +43,22 @@ export async function createOrder(orderData: OrderData): Promise<OrderResult> {
       return {
         success: false,
         error: "אירעה שגיאה באימות. אנא התחבר מחדש",
+      };
+    }
+
+    // Rate limiting: Check if user has exceeded order creation limit
+    const rateLimitResult = checkRateLimit(user.id, RATE_LIMITS.ORDER_CREATION);
+
+    if (!rateLimitResult.success) {
+      const resetDate = new Date(rateLimitResult.resetTime);
+      const resetTimeStr = resetDate.toLocaleTimeString("he-IL", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      return {
+        success: false,
+        error: `חרגת ממספר ההזמנות המותר (${rateLimitResult.limit} הזמנות לשעה). אנא נסה שוב ב-${resetTimeStr}`,
       };
     }
 

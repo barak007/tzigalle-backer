@@ -3,9 +3,32 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { logError, getUserErrorMessage } from "@/lib/utils/error-handler";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/utils/rate-limit";
 
 export async function adminLogin(email: string, password: string) {
   try {
+    // Rate limiting: Prevent brute force attacks
+    // Use email as identifier for login attempts
+    const rateLimitResult = checkRateLimit(email, RATE_LIMITS.LOGIN);
+
+    if (!rateLimitResult.success) {
+      const resetDate = new Date(rateLimitResult.resetTime);
+      const resetTimeStr = resetDate.toLocaleTimeString("he-IL", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      logError(new Error("Rate limit exceeded for login"), {
+        action: "adminLogin:rateLimit",
+        data: { email },
+      });
+
+      return {
+        success: false,
+        error: `יותר מדי ניסיונות התחברות. אנא נסה שוב ב-${resetTimeStr}`,
+      };
+    }
+
     const supabase = await createClient();
 
     // Attempt to sign in
