@@ -17,7 +17,7 @@ export interface PhoneValidationResult {
  * - +972-50-1234567
  * - 972-50-1234567
  * - +972501234567
- * 
+ *
  * @param phone - The phone number to validate
  * @returns PhoneValidationResult object with validation status and normalized number
  */
@@ -34,7 +34,7 @@ export function validateIsraeliPhone(phone: string): PhoneValidationResult {
 
   // Pattern 1: Israeli format starting with 0 (e.g., 0501234567)
   const israeliPattern = /^0(5[0-9]|7[0-9])\d{7}$/;
-  
+
   // Pattern 2: International format with +972 or 972 (e.g., +972501234567)
   const internationalPattern = /^(\+?972)(5[0-9]|7[0-9])\d{7}$/;
 
@@ -47,7 +47,8 @@ export function validateIsraeliPhone(phone: string): PhoneValidationResult {
     const internationalMatch = cleanPhone.match(internationalPattern);
     if (internationalMatch) {
       // Convert international format to Israeli format: 972501234567 -> 0501234567
-      normalized = '0' + cleanPhone.substring(cleanPhone.indexOf(internationalMatch[2]));
+      normalized =
+        "0" + cleanPhone.substring(cleanPhone.indexOf(internationalMatch[2]));
     }
   }
 
@@ -60,8 +61,23 @@ export function validateIsraeliPhone(phone: string): PhoneValidationResult {
 
   // Additional validation: Check if it's a valid Israeli mobile prefix
   const prefix = normalized.substring(1, 3);
-  const validPrefixes = ['50', '51', '52', '53', '54', '55', '58', '72', '73', '74', '76', '77', '78', '79'];
-  
+  const validPrefixes = [
+    "50",
+    "51",
+    "52",
+    "53",
+    "54",
+    "55",
+    "58",
+    "72",
+    "73",
+    "74",
+    "76",
+    "77",
+    "78",
+    "79",
+  ];
+
   if (!validPrefixes.includes(prefix)) {
     return {
       isValid: false,
@@ -81,14 +97,14 @@ export function validateIsraeliPhone(phone: string): PhoneValidationResult {
  * @returns Formatted phone number: 050-1234567
  */
 export function formatPhoneForDisplay(phone: string): string {
-  if (!phone) return '';
-  
+  if (!phone) return "";
+
   const cleanPhone = phone.replace(/[-\s]/g, "");
-  
+
   // Format as: 0XX-XXXXXXX
-  if (cleanPhone.length === 10 && cleanPhone.startsWith('0')) {
+  if (cleanPhone.length === 10 && cleanPhone.startsWith("0")) {
     return `${cleanPhone.substring(0, 3)}-${cleanPhone.substring(3)}`;
   }
-  
+
   return phone;
 }
