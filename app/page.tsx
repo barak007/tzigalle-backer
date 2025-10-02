@@ -54,6 +54,10 @@ export default function HomePage() {
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [showEditFields, setShowEditFields] = useState(false);
 
+  // Validation error states
+  const [phoneError, setPhoneError] = useState("");
+  const [deliveryDateError, setDeliveryDateError] = useState("");
+
   // Save current order data to localStorage whenever form changes (after initial load)
   useEffect(() => {
     // Skip saving on initial load to allow data to be loaded first
@@ -290,6 +294,36 @@ export default function HomePage() {
     ].sort((a, b) => a.date.getTime() - b.date.getTime());
   }, []); // Empty dependency array since these dates don't change based on state
 
+  // Phone validation function
+  const validatePhone = (phone: string) => {
+    if (!phone.trim()) {
+      setPhoneError("");
+      return false;
+    }
+    const phoneRegex = /^(\+?972-?\d\d{1}-?\d{7}|0\d\d{1}-?\d{7})$/;
+    const cleanPhone = phone.replace(/\s/g, "");
+    const isValid = phoneRegex.test(cleanPhone);
+
+    if (!isValid) {
+      setPhoneError(
+        "מספר טלפון לא תקין. פורמט נכון: 050-1234567 או 972-50-1234567"
+      );
+    } else {
+      setPhoneError("");
+    }
+    return isValid;
+  };
+
+  // Handle phone input change with validation
+  const handlePhoneChange = (value: string) => {
+    setCustomerPhone(value);
+    if (value.trim()) {
+      validatePhone(value);
+    } else {
+      setPhoneError("");
+    }
+  };
+
   const updateQuantity = (breadId: number, change: number) => {
     setCart((prev) => {
       const newQuantity = (prev[breadId] || 0) + change;
@@ -348,6 +382,7 @@ export default function HomePage() {
 
     // Validation
     if (!deliveryDate) {
+      setDeliveryDateError("יש לבחור תאריך משלוח");
       toast({
         title: "שגיאה",
         description: "יש לבחור תאריך משלוח",
@@ -355,16 +390,13 @@ export default function HomePage() {
       });
       return;
     }
+    setDeliveryDateError("");
 
-    // Validate Israeli phone format: 0XX-XXXXXXX or 972-XX-XXXXXXX or +972-XX-XXXXXXX
-    const phoneRegex = /^(\+?972-?\d\d{1}-?\d{7}|0\d\d{1}-?\d{7})$/;
-    const cleanPhone = customerPhone.replace(/\s/g, "");
-
-    if (!phoneRegex.test(cleanPhone)) {
+    // Validate phone
+    if (!validatePhone(customerPhone)) {
       toast({
         title: "שגיאה",
-        description:
-          "מספר טלפון לא תקין. פורמט נכון: 050-1234567 או 972-50-1234567",
+        description: phoneError || "מספר טלפון לא תקין",
         variant: "destructive",
       });
       return;
@@ -422,6 +454,10 @@ export default function HomePage() {
       setDeliveryDate("");
       setNotes("");
 
+      // Clear validation errors
+      setPhoneError("");
+      setDeliveryDateError("");
+
       // Clear saved order from localStorage
       localStorage.removeItem("currentOrder");
       setHasSavedOrder(false);
@@ -442,6 +478,10 @@ export default function HomePage() {
     setCart({});
     setDeliveryDate("");
     setNotes("");
+
+    // Clear validation errors
+    setPhoneError("");
+    setDeliveryDateError("");
 
     // Reset to user's saved profile info (if available)
     if (userProfile) {
@@ -720,16 +760,30 @@ export default function HomePage() {
                   {/* Conditionally show phone, address, city fields */}
                   {shouldShowField("phone") && (
                     <div className="space-y-2">
-                      <Label htmlFor="phone">טלפון *</Label>
+                      <Label
+                        htmlFor="phone"
+                        className={phoneError ? "text-red-600" : ""}
+                      >
+                        טלפון *
+                      </Label>
                       <Input
                         id="phone"
                         type="tel"
                         dir="rtl"
                         required
                         value={customerPhone}
-                        onChange={(e) => setCustomerPhone(e.target.value)}
+                        onChange={(e) => handlePhoneChange(e.target.value)}
+                        onBlur={() => validatePhone(customerPhone)}
                         placeholder="050-1234567"
+                        className={
+                          phoneError
+                            ? "border-red-500 focus-visible:ring-red-500"
+                            : ""
+                        }
                       />
+                      {phoneError && (
+                        <p className="text-sm text-red-600">{phoneError}</p>
+                      )}
                     </div>
                   )}
 
@@ -760,12 +814,22 @@ export default function HomePage() {
                   )}
 
                   <div className="space-y-2">
-                    <Label>תאריך משלוח *</Label>
+                    <Label className={deliveryDateError ? "text-red-600" : ""}>
+                      תאריך משלוח *
+                    </Label>
                     <RadioGroup
                       dir="rtl"
                       value={deliveryDate}
-                      onValueChange={setDeliveryDate}
+                      onValueChange={(value) => {
+                        setDeliveryDate(value);
+                        setDeliveryDateError("");
+                      }}
                       required
+                      className={
+                        deliveryDateError
+                          ? "border border-red-500 rounded-lg p-2"
+                          : ""
+                      }
                     >
                       {deliveryOptions.map((option) => (
                         <div
@@ -806,6 +870,11 @@ export default function HomePage() {
                         </div>
                       ))}
                     </RadioGroup>
+                    {deliveryDateError && (
+                      <p className="text-sm text-red-600">
+                        {deliveryDateError}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
