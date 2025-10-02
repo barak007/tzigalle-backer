@@ -1,14 +1,19 @@
 #!/usr/bin/env node
 
 import { createClient } from "@supabase/supabase-js";
-import { ALL_ENV } from "../lib/env";
+import { ENV } from "../lib/env";
 
 // Load environment variables
 import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 
-const SUPABASE_URL = ALL_ENV.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = ALL_ENV.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_URL = ENV.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_SERVICE_ROLE_KEY) {
+  console.error("Error: SUPABASE_SERVICE_ROLE_KEY is not set in environment");
+  process.exit(1);
+}
 
 // Create Supabase admin client
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -25,7 +30,7 @@ async function fixAdminAccess() {
     // 1. Check current RLS policies
     console.log("📋 Step 1: Checking RLS policies...");
 
-    const { data: policies, error: policiesError } = await supabase
+    const { error: policiesError } = await supabase
       .rpc("exec_sql", {
         sql: `
           SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual
@@ -55,7 +60,7 @@ async function fixAdminAccess() {
     // 3. Update/insert profile with admin role (using service role to bypass RLS)
     console.log("📋 Step 3: Ensuring admin role is set...");
 
-    const { data: profile, error: profileError } = await supabase
+    const { error: profileError } = await supabase
       .from("profiles")
       .upsert(
         {
@@ -98,7 +103,7 @@ async function fixAdminAccess() {
     // 5. Test if user can see orders
     console.log("📋 Step 5: Testing orders access...");
 
-    const { data: orders, error: ordersError } = await supabase
+    const { error: ordersError } = await supabase
       .from("orders")
       .select("count")
       .limit(1);

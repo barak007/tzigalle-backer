@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -31,12 +31,17 @@ import {
 } from "@/components/ui/alert-dialog";
 import { createOrder } from "@/app/actions/orders";
 import { useToast } from "@/hooks/use-toast";
+import { useDebounce } from "@/hooks/use-debounce";
 import { BREAD_CATEGORIES } from "@/lib/constants/bread-categories";
 import { User, UserProfile } from "@/lib/types/user";
+import { validateIsraeliPhone } from "@/lib/utils/phone-validator";
 
 export default function HomePage() {
   const router = useRouter();
   const { toast } = useToast();
+
+  // Memoize Supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), []);
   const [cart, setCart] = useState<Record<number, number>>({});
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -58,6 +63,26 @@ export default function HomePage() {
   const [phoneError, setPhoneError] = useState("");
   const [deliveryDateError, setDeliveryDateError] = useState("");
 
+  // Debounced localStorage save function to improve performance
+  const saveToLocalStorage = useCallback((orderData: any) => {
+    // Check if there's any meaningful data to save
+    const hasData =
+      Object.keys(orderData.cart).length > 0 ||
+      orderData.customerName.trim() !== "" ||
+      orderData.customerPhone.trim() !== "" ||
+      orderData.customerAddress.trim() !== "" ||
+      orderData.deliveryDate !== "" ||
+      orderData.notes.trim() !== "";
+
+    if (hasData) {
+      localStorage.setItem("currentOrder", JSON.stringify(orderData));
+    } else {
+      localStorage.removeItem("currentOrder");
+    }
+  }, []);
+
+  const debouncedSaveToLocalStorage = useDebounce(saveToLocalStorage, 500);
+
   // Save current order data to localStorage whenever form changes (after initial load)
   useEffect(() => {
     // Skip saving on initial load to allow data to be loaded first
@@ -75,20 +100,8 @@ export default function HomePage() {
       notes,
     };
 
-    // Check if there's any meaningful data to save
-    const hasData =
-      Object.keys(cart).length > 0 ||
-      customerName.trim() !== "" ||
-      customerPhone.trim() !== "" ||
-      customerAddress.trim() !== "" ||
-      deliveryDate !== "" ||
-      notes.trim() !== "";
-
-    if (hasData) {
-      localStorage.setItem("currentOrder", JSON.stringify(orderData));
-    } else {
-      localStorage.removeItem("currentOrder");
-    }
+    // Use debounced save for better performance
+    debouncedSaveToLocalStorage(orderData);
 
     // Determine if "Clear Order" button should be visible
     // Only show if there are changes beyond user profile details
@@ -133,6 +146,7 @@ export default function HomePage() {
     isInitialLoad,
     userProfile,
     user,
+    debouncedSaveToLocalStorage,
   ]);
 
   // Helper function to determine if a field should be shown
@@ -144,8 +158,6 @@ export default function HomePage() {
 
   // Check authentication and load saved order
   useEffect(() => {
-    const supabase = createClient();
-
     // Check if there's saved order data immediately
     const currentOrder = localStorage.getItem("currentOrder");
     if (currentOrder) {
@@ -226,10 +238,10 @@ export default function HomePage() {
       // Mark initial load as complete
       setIsInitialLoad(false);
     });
-  }, []);
+  }, [supabase, toast]);
 
   // Calculate next delivery dates based on deadlines
-  const getNextDeliveryDate = (deliveryDay: number, deadlineDay: number) => {
+  const getNextDeliveryDate = (_deliveryDay: number, deadlineDay: number) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const currentDay = today.getDay();
@@ -300,18 +312,15 @@ export default function HomePage() {
       setPhoneError("");
       return false;
     }
-    const phoneRegex = /^(\+?972-?\d\d{1}-?\d{7}|0\d\d{1}-?\d{7})$/;
-    const cleanPhone = phone.replace(/\s/g, "");
-    const isValid = phoneRegex.test(cleanPhone);
 
-    if (!isValid) {
-      setPhoneError(
-        "מספר טלפון לא תקין. פורמט נכון: 050-1234567 או 972-50-1234567"
-      );
+    const validation = validateIsraeliPhone(phone);
+
+    if (!validation.isValid) {
+      setPhoneError(validation.error || "מספר טלפון לא תקין");
     } else {
       setPhoneError("");
     }
-    return isValid;
+    return validation.isValid;
   };
 
   // Handle phone input change with validation
@@ -462,10 +471,10 @@ export default function HomePage() {
       localStorage.removeItem("currentOrder");
       setHasSavedOrder(false);
     } catch (error) {
-      console.error("Error submitting order:", error);
+      console.error("Unexpected error during order submission:", error);
       toast({
-        title: "שגיאה",
-        description: "שגיאה בלתי צפויה. אנא נסה שוב",
+        title: "שגיאה בלתי צפויה",
+        description: "אירעה שגיאת רשת או שרת. אנא נסה שוב מאוחר יותר",
         variant: "destructive",
       });
     } finally {

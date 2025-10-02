@@ -68,6 +68,7 @@ export default function AdminPageClient({
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterDelivery, setFilterDelivery] = useState<string>("all");
   const [showArchived, setShowArchived] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -95,20 +96,32 @@ export default function AdminPageClient({
   const nextDeliveryDate = nextTuesday < nextFriday ? nextTuesday : nextFriday;
 
   const fetchOrders = async () => {
-    const { data, error } = await supabase
-      .from("orders")
-      .select("*")
-      .order("created_at", { ascending: false });
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("Error fetching orders:", error);
+      if (error) {
+        console.error("Error fetching orders:", error);
+        toast({
+          title: "שגיאה",
+          description: "לא ניתן לטעון הזמנות. אנא נסה שוב",
+          variant: "destructive",
+        });
+      } else {
+        setOrders(data || []);
+      }
+    } catch (error) {
+      console.error("Unexpected error fetching orders:", error);
       toast({
         title: "שגיאה",
-        description: "שגיאה בטעינת ההזמנות",
+        description: "אירעה שגיאה בלתי צפויה",
         variant: "destructive",
       });
-    } else {
-      setOrders(data || []);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -520,7 +533,16 @@ export default function AdminPageClient({
 
         {/* Orders List */}
         <div className="space-y-4">
-          {filteredOrders.length === 0 ? (
+          {isLoading ? (
+            <Card className="bg-white/80 backdrop-blur-sm">
+              <CardContent className="p-8 text-center text-muted-foreground">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-900"></div>
+                  <p>טוען הזמנות...</p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : filteredOrders.length === 0 ? (
             <Card className="bg-white/80 backdrop-blur-sm">
               <CardContent className="p-8 text-center text-muted-foreground">
                 אין הזמנות להצגה

@@ -2,14 +2,14 @@
 
 import { createClient } from "@supabase/supabase-js";
 import * as readline from "readline";
-import { ALL_ENV } from "../lib/env";
+import { ENV } from "../lib/env";
 
 // Load environment variables
 import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 
-const SUPABASE_URL = ALL_ENV.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_ANON_KEY = ALL_ENV.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const SUPABASE_URL = ENV.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = ENV.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 // Create Supabase client (same as the app uses)
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -88,7 +88,7 @@ async function testLogin() {
       console.log("\n✅ User is an ADMIN!");
       console.log("\n🔄 Step 3: Testing orders access...");
 
-      const { data: orders, error: ordersError } = await supabase
+      const { error: ordersError } = await supabase
         .from("orders")
         .select("count");
 

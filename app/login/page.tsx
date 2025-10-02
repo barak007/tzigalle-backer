@@ -37,7 +37,7 @@ export default function LoginPage() {
     setError(null);
     setAnimateSignup(false);
 
-    const { data, error } = await signInWithEmail(email, password);
+    const { error } = await signInWithEmail(email, password);
 
     if (error) {
       setError("אימייל או סיסמה שגויים");

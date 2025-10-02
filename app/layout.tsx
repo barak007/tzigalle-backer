@@ -31,16 +31,12 @@ export default async function RootLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Check if on admin or auth pages to hide navigation
-  const hideNav = false; // We'll handle this in the component
-
   return (
     <html lang="he">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <Suspense fallback={null}>
           {/* Navigation Header */}
           <Header user={user} />
-
           {children}
           <Analytics />
           <Toaster />

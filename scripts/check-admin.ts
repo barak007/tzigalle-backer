@@ -1,15 +1,19 @@
 #!/usr/bin/env node
 
 import { createClient } from "@supabase/supabase-js";
-import * as readline from "readline";
-import { ALL_ENV } from "../lib/env";
+import { ENV } from "../lib/env";
 
 // Load environment variables
 import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 
-const SUPABASE_URL = ALL_ENV.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = ALL_ENV.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_URL = ENV.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_SERVICE_ROLE_KEY) {
+  console.error("Error: SUPABASE_SERVICE_ROLE_KEY is not set in environment");
+  process.exit(1);
+}
 
 // Create Supabase admin client
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {

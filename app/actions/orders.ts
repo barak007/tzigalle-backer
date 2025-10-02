@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { logError, getUserErrorMessage } from "@/lib/utils/error-handler";
+import { validateIsraeliPhone } from "@/lib/utils/phone-validator";
 
 export interface OrderData {
   customerName: string;
@@ -56,10 +57,65 @@ export async function createOrder(orderData: OrderData): Promise<OrderResult> {
       };
     }
 
+    // Validate phone format (Israeli phone number)
+    const phoneValidation = validateIsraeliPhone(orderData.customerPhone);
+    if (!phoneValidation.isValid) {
+      return {
+        success: false,
+        error: phoneValidation.error || "מספר טלפון לא תקין",
+      };
+    }
+
+    // Validate name length
+    if (
+      orderData.customerName.length < 2 ||
+      orderData.customerName.length > 100
+    ) {
+      return {
+        success: false,
+        error: "שם לא תקין",
+      };
+    }
+
+    // Validate delivery date is in the future
+    const deliveryDate = new Date(orderData.deliveryDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (deliveryDate < today) {
+      return {
+        success: false,
+        error: "תאריך אספקה חייב להיות בעתיד",
+      };
+    }
+
     if (orderData.items.length === 0) {
       return {
         success: false,
         error: "העגלה ריקה",
+      };
+    }
+
+    // Validate items
+    for (const item of orderData.items) {
+      if (!item.name || item.quantity <= 0 || item.price < 0) {
+        return {
+          success: false,
+          error: "פרטי המוצר לא תקינים",
+        };
+      }
+    }
+
+    // Validate total price matches items
+    const calculatedTotal = orderData.items.reduce(
+      (sum, item) => sum + item.quantity * item.price,
+      0
+    );
+
+    if (Math.abs(calculatedTotal - orderData.totalPrice) > 0.01) {
+      return {
+        success: false,
+        error: "שגיאה בחישוב המחיר הכולל",
       };
     }
 

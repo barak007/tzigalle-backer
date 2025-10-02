@@ -69,11 +69,17 @@ export async function middleware(request: NextRequest) {
     }
 
     // Check if user has admin role
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
       .single();
+
+    if (profileError) {
+      console.error("Profile fetch error in middleware:", profileError);
+      // On error, redirect to error page or home
+      return NextResponse.redirect(new URL("/", request.url));
+    }
 
     if (!profile || profile.role !== "admin") {
       // Redirect to home if not admin

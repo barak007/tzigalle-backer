@@ -18,10 +18,19 @@ export async function GET(request: Request) {
     }
   }
 
-  // Validate returnTo is a relative path (prevent open redirect vulnerability)
+  // Validate returnTo is a safe internal path
   let redirectPath = "/";
-  if (returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//")) {
-    redirectPath = returnTo;
+  if (returnTo) {
+    try {
+      const url = new URL(returnTo, origin);
+      // Only allow redirects to same origin
+      if (url.origin === origin) {
+        redirectPath = url.pathname + url.search;
+      }
+    } catch {
+      // Invalid URL, use default
+      redirectPath = "/";
+    }
   }
 
   return NextResponse.redirect(`${origin}${redirectPath}`);

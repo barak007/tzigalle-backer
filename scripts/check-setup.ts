@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import * as dotenv from "dotenv";
-import { ALL_ENV } from "../lib/env";
+import { ENV } from "../lib/env";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -9,8 +9,8 @@ async function checkSetup() {
   console.log("🔍 Checking Admin Security Setup...\n");
 
   // Check environment variables (validation happens in lib/env.ts)
-  const supabaseUrl = ALL_ENV.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = ALL_ENV.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseUrl = ENV.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = ENV.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   console.log("✅ Environment variables validated");
 
@@ -18,7 +18,7 @@ async function checkSetup() {
 
   // Check if profiles table exists
   console.log("\n🔄 Checking profiles table...");
-  const { data: profiles, error: profilesError } = await supabase
+  const { error: profilesError } = await supabase
     .from("profiles")
     .select("id, email, role")
     .limit(1);
@@ -54,7 +54,7 @@ async function checkSetup() {
 
   // Check orders table
   console.log("\n🔄 Checking orders table...");
-  const { data: orders, error: ordersError } = await supabase
+  const { error: ordersError } = await supabase
     .from("orders")
     .select("id")
     .limit(1);
