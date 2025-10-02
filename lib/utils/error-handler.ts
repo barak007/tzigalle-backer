@@ -3,6 +3,8 @@
  * Provides consistent error logging and user-friendly messages
  */
 
+import * as Sentry from "@sentry/nextjs";
+
 interface ErrorContext {
   action: string;
   userId?: string;
@@ -16,8 +18,7 @@ interface ErrorDetails {
 }
 
 /**
- * Logs error with context for debugging
- * In production, this should integrate with error tracking services like Sentry
+ * Logs error with context for debugging and sends to Sentry
  */
 export function logError(error: unknown, context: ErrorContext): void {
   const timestamp = new Date().toISOString();
@@ -36,8 +37,18 @@ export function logError(error: unknown, context: ErrorContext): void {
     context: context.data,
   });
 
-  // TODO: In production, send to error tracking service
-  // Example: Sentry.captureException(error, { extra: context });
+  // Send to Sentry with full context
+  Sentry.captureException(error, {
+    tags: {
+      action: context.action,
+      errorCode: errorDetails.code,
+    },
+    user: context.userId ? { id: context.userId } : undefined,
+    extra: {
+      context: context.data,
+      errorDetails,
+    },
+  });
 }
 
 /**

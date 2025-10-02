@@ -10,7 +10,7 @@ export function useDebounce<T extends (...args: any[]) => void>(
   callback: T,
   delay: number
 ): (...args: Parameters<T>) => void {
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Clear timeout on unmount
   useEffect(() => {

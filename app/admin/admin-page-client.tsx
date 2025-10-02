@@ -20,19 +20,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  ArrowRight,
   Package,
   Phone,
   MapPin,
   Calendar,
   FileText,
-  LogOut,
   TruckIcon,
   Clock,
   Archive,
 } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { ORDER_STATUSES } from "@/lib/constants/order-status";
 import { formatDate, formatDeliveryDate } from "@/lib/utils/dates";
@@ -69,7 +65,6 @@ export default function AdminPageClient({
   const [filterDelivery, setFilterDelivery] = useState<string>("all");
   const [showArchived, setShowArchived] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
   const { toast } = useToast();
 
   // Create a single Supabase client instance for the entire component
@@ -123,12 +118,6 @@ export default function AdminPageClient({
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/admin/login");
-    router.refresh();
   };
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {

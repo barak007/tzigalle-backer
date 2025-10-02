@@ -37,7 +37,6 @@ export default function HomePage() {
     notes,
     isSubmitting,
     orderSuccess,
-    hasSavedOrder,
     showEditFields,
     phoneError,
     deliveryDateError,
