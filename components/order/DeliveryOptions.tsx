@@ -41,7 +41,7 @@ export function DeliveryOptions({
         className="grid grid-cols-1 md:grid-cols-2 gap-3"
         aria-label="בחר יום משלוח"
       >
-        {[...options].reverse().map((option) => (
+        {options.map((option) => (
           <Label
             key={option.value}
             htmlFor={option.value}
