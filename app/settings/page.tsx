@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { SUPPORTED_CITIES } from "@/lib/constants/cities";
+import { validateIsraeliPhone } from "@/lib/utils/phone-validator";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -37,6 +38,12 @@ export default function SettingsPage() {
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<{
+    fullName?: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+  }>({});
 
   useEffect(() => {
     loadUserProfile();
@@ -79,6 +86,52 @@ export default function SettingsPage() {
     e.preventDefault();
     setSaving(true);
     setError(null);
+    setValidationErrors({});
+
+    // Validate form inputs
+    const errors: {
+      fullName?: string;
+      phone?: string;
+      address?: string;
+      city?: string;
+    } = {};
+
+    // Validate full name
+    if (!fullName.trim()) {
+      errors.fullName = "שם מלא הוא שדה חובה";
+    } else if (fullName.trim().length < 2) {
+      errors.fullName = "שם מלא חייב להכיל לפחות 2 תווים";
+    } else if (fullName.trim().length > 100) {
+      errors.fullName = "שם מלא ארוך מדי (מקסימום 100 תווים)";
+    }
+
+    // Validate phone if provided
+    if (phone.trim()) {
+      const phoneValidation = validateIsraeliPhone(phone);
+      if (!phoneValidation.isValid) {
+        errors.phone = phoneValidation.error || "מספר טלפון לא תקין";
+      }
+    }
+
+    // Validate address and city together (both or neither)
+    if (address.trim() && !city) {
+      errors.city = "יש לבחור עיר כאשר מזינים כתובת";
+    }
+    if (city && !address.trim()) {
+      errors.address = "יש להזין כתובת כאשר בוחרים עיר";
+    }
+
+    // If there are validation errors, show them and stop
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      setSaving(false);
+      toast({
+        title: "שגיאת תקינות",
+        description: "יש לתקן את השגיאות בטופס",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const supabase = createClient();
 
@@ -182,10 +235,24 @@ export default function SettingsPage() {
                   type="text"
                   placeholder="הכנס את שמך המלא"
                   value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                  onChange={(e) => {
+                    setFullName(e.target.value);
+                    if (validationErrors.fullName) {
+                      setValidationErrors({
+                        ...validationErrors,
+                        fullName: undefined,
+                      });
+                    }
+                  }}
                   required
                   disabled={saving}
+                  className={validationErrors.fullName ? "border-red-500" : ""}
                 />
+                {validationErrors.fullName && (
+                  <p className="text-xs text-red-500">
+                    {validationErrors.fullName}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -196,9 +263,23 @@ export default function SettingsPage() {
                   dir="rtl"
                   placeholder="050-1234567"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => {
+                    setPhone(e.target.value);
+                    if (validationErrors.phone) {
+                      setValidationErrors({
+                        ...validationErrors,
+                        phone: undefined,
+                      });
+                    }
+                  }}
                   disabled={saving}
+                  className={validationErrors.phone ? "border-red-500" : ""}
                 />
+                {validationErrors.phone && (
+                  <p className="text-xs text-red-500">
+                    {validationErrors.phone}
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground">
                   ימולא אוטומטית בהזמנות חדשות
                 </p>
@@ -210,9 +291,23 @@ export default function SettingsPage() {
                   id="address"
                   placeholder="רחוב ומספר בית"
                   value={address}
-                  onChange={(e) => setAddress(e.target.value)}
+                  onChange={(e) => {
+                    setAddress(e.target.value);
+                    if (validationErrors.address) {
+                      setValidationErrors({
+                        ...validationErrors,
+                        address: undefined,
+                      });
+                    }
+                  }}
                   disabled={saving}
+                  className={validationErrors.address ? "border-red-500" : ""}
                 />
+                {validationErrors.address && (
+                  <p className="text-xs text-red-500">
+                    {validationErrors.address}
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground">
                   ימולא אוטומטית בהזמנות חדשות
                 </p>
@@ -222,11 +317,22 @@ export default function SettingsPage() {
                 <Label htmlFor="city">עיר</Label>
                 <Select
                   value={city}
-                  onValueChange={setCity}
+                  onValueChange={(value) => {
+                    setCity(value);
+                    if (validationErrors.city) {
+                      setValidationErrors({
+                        ...validationErrors,
+                        city: undefined,
+                      });
+                    }
+                  }}
                   disabled={saving}
                   dir="rtl"
                 >
-                  <SelectTrigger id="city">
+                  <SelectTrigger
+                    id="city"
+                    className={validationErrors.city ? "border-red-500" : ""}
+                  >
                     <SelectValue placeholder="בחר עיר" />
                   </SelectTrigger>
                   <SelectContent dir="rtl">
@@ -237,6 +343,11 @@ export default function SettingsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {validationErrors.city && (
+                  <p className="text-xs text-red-500">
+                    {validationErrors.city}
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground">
                   ימולא אוטומטית בהזמנות חדשות
                 </p>
@@ -249,14 +360,6 @@ export default function SettingsPage() {
                   disabled={saving}
                 >
                   {saving ? "שומר..." : "שמור שינויים"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.push("/")}
-                  disabled={saving}
-                >
-                  ביטול
                 </Button>
               </div>
             </form>

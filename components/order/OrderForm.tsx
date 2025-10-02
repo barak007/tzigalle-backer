@@ -113,7 +113,7 @@ export function OrderForm({
             onChange={(e) => onCustomerPhoneChange(e.target.value)}
             required
             placeholder="05X-XXXXXXX"
-            dir="ltr"
+            dir="rtl"
             disabled={hasUserPhone && !showEditFields}
             className={cn(
               phoneError &&
