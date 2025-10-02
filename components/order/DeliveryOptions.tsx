@@ -38,14 +38,14 @@ export function DeliveryOptions({
             onChange(value, option.date);
           }
         }}
-        className="grid grid-cols-1 md:grid-cols-2 gap-3"
+        className="flex flex-col md:flex-row-reverse gap-3"
         aria-label="בחר יום משלוח"
       >
         {options.map((option) => (
           <Label
             key={option.value}
             htmlFor={option.value}
-            className={`grid grid-cols-[1fr_auto] gap-3 items-center border rounded-lg p-4 transition-all cursor-pointer ${
+            className={`md:flex-1 grid grid-cols-[1fr_auto] gap-3 items-center border rounded-lg p-4 transition-all cursor-pointer ${
               selectedValue === option.value
                 ? "border-amber-600 bg-amber-50"
                 : "border-gray-200 hover:border-amber-300"
