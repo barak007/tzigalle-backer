@@ -356,10 +356,15 @@ export default function HomePage() {
       return;
     }
 
-    if (customerPhone.length < 10) {
+    // Validate Israeli phone format: 0XX-XXXXXXX or 972-XX-XXXXXXX or +972-XX-XXXXXXX
+    const phoneRegex = /^(\+?972-?\d\d{1}-?\d{7}|0\d\d{1}-?\d{7})$/;
+    const cleanPhone = customerPhone.replace(/\s/g, "");
+
+    if (!phoneRegex.test(cleanPhone)) {
       toast({
         title: "שגיאה",
-        description: "מספר טלפון לא תקין",
+        description:
+          "מספר טלפון לא תקין. פורמט נכון: 050-1234567 או 972-50-1234567",
         variant: "destructive",
       });
       return;

@@ -62,6 +62,30 @@ export async function createOrder(orderData: OrderData): Promise<OrderResult> {
       };
     }
 
+    // Rate limiting: Check if user already has a pending order
+    const { data: existingPendingOrders, error: checkError } = await supabase
+      .from("orders")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("status", "pending")
+      .limit(1);
+
+    if (checkError) {
+      console.error("Error checking existing orders:", checkError);
+      return {
+        success: false,
+        error: "אירעה שגיאה בבדיקת הזמנות קיימות",
+      };
+    }
+
+    if (existingPendingOrders && existingPendingOrders.length > 0) {
+      return {
+        success: false,
+        error:
+          "יש לך כבר הזמנה ממתינה. אנא המתן לאישור ההזמנה הקיימת או בטל אותה לפני ביצוע הזמנה חדשה. לצפייה בהזמנות שלך לחץ על 'ההזמנות שלי'",
+      };
+    }
+
     // Insert order with server-controlled user_id
     const { data, error } = await supabase
       .from("orders")

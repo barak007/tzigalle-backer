@@ -21,11 +21,14 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnTo = searchParams.get("returnTo") || "/";
+  const authError = searchParams.get("error");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    authError === "auth_failed" ? "אימות נכשל. אנא נסה שוב" : null
+  );
   const [animateSignup, setAnimateSignup] = useState(false);
 
   const handleEmailLogin = async (e: React.FormEvent) => {

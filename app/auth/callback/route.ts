@@ -9,10 +9,20 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient();
-    await supabase.auth.exchangeCodeForSession(code);
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+    if (error) {
+      console.error("OAuth callback error:", error);
+      // Redirect to login with error message
+      return NextResponse.redirect(`${origin}/login?error=auth_failed`);
+    }
   }
 
-  // Redirect to intended page or home
-  const redirectUrl = returnTo ? `${origin}${returnTo}` : `${origin}/`;
-  return NextResponse.redirect(redirectUrl);
+  // Validate returnTo is a relative path (prevent open redirect vulnerability)
+  let redirectPath = "/";
+  if (returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//")) {
+    redirectPath = returnTo;
+  }
+
+  return NextResponse.redirect(`${origin}${redirectPath}`);
 }
