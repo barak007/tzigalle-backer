@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Card,
   CardContent,
   CardDescription,
@@ -16,6 +23,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { SUPPORTED_CITIES } from "@/lib/constants/cities";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -206,17 +214,31 @@ export default function SignupPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="city">עיר</Label>
-                <Input
-                  id="city"
-                  placeholder="שם העיר"
+                <Select
                   value={city}
-                  onChange={(e) => setCity(e.target.value)}
+                  onValueChange={setCity}
                   disabled={loading}
-                />
+                  dir="rtl"
+                >
+                  <SelectTrigger id="city">
+                    <SelectValue placeholder="בחר עיר" />
+                  </SelectTrigger>
+                  <SelectContent dir="rtl">
+                    {SUPPORTED_CITIES.map((supportedCity) => (
+                      <SelectItem key={supportedCity} value={supportedCity}>
+                        {supportedCity}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button
+              type="submit"
+              className="w-full bg-amber-700 hover:bg-amber-800 text-white"
+              disabled={loading}
+            >
               {loading ? "נרשם..." : "הירשם"}
             </Button>
           </form>

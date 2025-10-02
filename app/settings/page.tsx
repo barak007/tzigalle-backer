@@ -13,10 +13,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { SUPPORTED_CITIES } from "@/lib/constants/cities";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -212,13 +220,23 @@ export default function SettingsPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="city">עיר</Label>
-                <Input
-                  id="city"
-                  placeholder="שם העיר"
+                <Select
                   value={city}
-                  onChange={(e) => setCity(e.target.value)}
+                  onValueChange={setCity}
                   disabled={saving}
-                />
+                  dir="rtl"
+                >
+                  <SelectTrigger id="city">
+                    <SelectValue placeholder="בחר עיר" />
+                  </SelectTrigger>
+                  <SelectContent dir="rtl">
+                    {SUPPORTED_CITIES.map((supportedCity) => (
+                      <SelectItem key={supportedCity} value={supportedCity}>
+                        {supportedCity}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <p className="text-xs text-muted-foreground">
                   ימולא אוטומטית בהזמנות חדשות
                 </p>

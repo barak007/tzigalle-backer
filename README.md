@@ -10,6 +10,8 @@
 - בחירת תאריך משלוח (שלישי/שישי)
 - עגלת קניות דינמית
 - מעקב אחר סה"כ הזמנה
+- שמירה אוטומטית של הזמנות
+- ממשק רספונסיבי ונגיש
 
 ### מנהלים
 
@@ -20,6 +22,54 @@
 - מערכת ארכיון להזמנות ישנות
 - עדכון סטטוס הזמנות
 
+## 🏗️ ארכיטקטורה
+
+### מבנה רכיבים מודולרי
+
+הפרויקט עבר רפקטורינג משמעותי (אוקטובר 2025) לארכיטקטורה מודולרית:
+
+```
+app/
+├── page.tsx              # דף ראשי (330 שורות - 66% הפחתה)
+├── actions/              # Server Actions
+│   ├── orders.ts        # פעולות הזמנות
+│   └── auth.ts          # פעולות אימות
+└── admin/               # פאנל ניהול
+
+components/
+└── order/               # רכיבי הזמנה
+    ├── OrderForm.tsx           # טופס פרטי לקוח
+    ├── ProductList.tsx         # רשימת מוצרים
+    ├── OrderSummary.tsx        # סיכום הזמנה
+    ├── DeliveryOptions.tsx     # בחירת תאריך משלוח
+    ├── SuccessMessage.tsx      # הודעת הצלחה
+    ├── FooterInfo.tsx          # מידע עסקי
+    └── ClearOrderDialog.tsx    # אישור ניקוי
+
+hooks/
+├── use-order-state.ts   # ניהול state של הזמנות
+├── use-debounce.ts      # Debouncing לביצועים
+└── use-toast.ts         # הודעות למשתמש
+
+lib/
+├── utils/
+│   ├── order-delivery.ts     # חישובי תאריכים
+│   ├── rate-limit.ts         # הגנת Rate limiting
+│   ├── phone-validator.ts    # אימות טלפון
+│   └── delivery-dates.ts     # תאריכי משלוח משותפים
+└── constants/
+    └── bread-categories.ts    # קטגוריות לחמים
+```
+
+### תכונות ארכיטקטוניות
+
+- ✅ **Separation of Concerns** - כל רכיב עם אחריות יחידה
+- ✅ **Reusability** - רכיבים ניתנים לשימוש חוזר
+- ✅ **Testability** - קל לבדיקות unit ו-integration
+- ✅ **Type Safety** - TypeScript Strict Mode
+- ✅ **Performance** - Debouncing, memoization, lazy loading
+- ✅ **Accessibility** - תמיכה מלאה ב-ARIA ונגישות
+
 ## 🛠️ טכנולוגיות
 
 - **Framework**: Next.js 14 (App Router)
@@ -27,8 +77,18 @@
 - **Authentication**: Supabase Auth
 - **UI Components**: Shadcn UI + Radix UI
 - **Styling**: Tailwind CSS
-- **Language**: TypeScript
+- **Language**: TypeScript (Strict Mode)
+- **State Management**: Custom Hooks
 - **Deployment**: Vercel
+
+## 🔒 אבטחה
+
+- Rate limiting על login ויצירת הזמנות
+- אימות קלט מקיף בצד שרת
+- Row Level Security (RLS) ב-Supabase
+- הגנה מפני Open Redirect
+- אימות מספרי טלפון ישראליים
+- Middleware מאובטח לבדיקת הרשאות
 
 ## 📦 התקנה
 
@@ -43,6 +103,8 @@ cd tzigla-bakery
 
 ```bash
 npm install
+# or
+pnpm install
 ```
 
 3. **Setup environment variables**

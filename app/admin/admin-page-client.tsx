@@ -272,25 +272,6 @@ export default function AdminPageClient({
             <h1 className="text-3xl font-bold mb-1">פאנל ניהול - ציגלה</h1>
             <p className="text-amber-100">ניהול הזמנות ומעקב משלוחים</p>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className="bg-amber-50 text-amber-900 hover:bg-amber-100"
-              onClick={handleLogout}
-            >
-              <LogOut className="ml-2 h-4 w-4" />
-              התנתק
-            </Button>
-            <Link href="/">
-              <Button
-                variant="outline"
-                className="bg-amber-50 text-amber-900 hover:bg-amber-100"
-              >
-                <ArrowRight className="ml-2 h-4 w-4" />
-                חזרה לאתר
-              </Button>
-            </Link>
-          </div>
         </div>
       </header>
 
